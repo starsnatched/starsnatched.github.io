@@ -1,2761 +1,515 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Historically Accurate Neural Network Simulation</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            color: #333;
-            background-image: url('https://assets.userstyles.org/assets_packs/type=style/user_id=3845746/screenshot_aecabaca-2620-4566-ab42-2403b363928c.webp');
-            background-size: cover;
-            background-position: center;
-        }
-        .container {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 15px;
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-            backdrop-filter: blur(10px);
-            padding: 30px;
-            text-align: center;
-        }
-        h1 {
-            color: #2c3e50;
-            margin-bottom: 20px;
-            font-size: 28px;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
-        }
-        #network-canvas {
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            border-radius: 10px;
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-        }
-        .controls {
-            margin-top: 20px;
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-        }
-        button {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            color: white;
-            padding: 12px 24px;
-            text-align: center;
-            text-decoration: none;
-            display: inline-block;
-            font-size: 16px;
-            cursor: pointer;
-            border-radius: 25px;
-            transition: background 0.3s, transform 0.1s;
-        }
-        button:hover {
-            background: rgba(255, 255, 255, 0.3);
-        }
-        button:active {
-            transform: scale(0.98);
-        }
-        #toggle-sim-btn {
-            background: rgba(46, 204, 113, 0.1);
-        }
-        #toggle-sim-btn:hover {
-            background: rgba(46, 204, 113, 0.3);
-        }
-
-        #error-console {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 150px;
-            background: rgba(0, 0, 0, 0.8);
-            color: #fff;
-            font-family: monospace;
-            font-size: 14px;
-            overflow-y: auto;
-            display: none;
-        }
-
-        #error-console-content {
-            padding: 10px;
-        }
-
-        #toggle-console-btn {
-            position: fixed;
-            bottom: 10px;
-            right: 10px;
-            z-index: 1000;
-        }
-        .control-btn {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            color: white;
-            padding: 12px 24px;
-            text-align: center;
-            text-decoration: none;
-            display: inline-block;
-            font-size: 16px;
-            margin: 4px 2px;
-            cursor: pointer;
-            border-radius: 25px;
-            transition: background 0.3s, transform 0.1s;
-        }
-        .control-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
-        }
-        .control-btn:active {
-            transform: scale(0.98);
-        }
-        #reward-btn {
-            background: rgba(46, 204, 113, 0.1);
-        }
-        #reward-btn:hover {
-            background: rgba(46, 204, 113, 0.3);
-        }
-        #punish-btn {
-            background: rgba(231, 76, 60, 0.1);
-        }
-        #punish-btn:hover {
-            background: rgba(231, 76, 60, 0.3);
-        }
-    </style>
+<meta charset="UTF-8">
+<title>Neural Network Simulation</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+<style>
+body{margin:0;padding:0;background:url('https://images4.alphacoders.com/136/1360814.png') no-repeat center center fixed;background-size:cover;font-family:'Helvetica Neue',Arial,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;}
+.container{display:flex;flex-wrap:wrap;gap:20px;justify-content:center;align-items:flex-start;width:100%;max-width:1100px;padding:20px;}
+.board-container,.network-container{background:rgba(255,255,255,0.2);border-radius:25px;box-shadow:0 8px 32px 0 rgba(31,38,135,0.37);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.18);overflow:hidden;position:relative;}
+.board-container{width:500px;height:500px;}
+.network-container{width:500px;height:500px;}
+canvas{width:100%;height:100%;display:block;}
+.header{position:relative;margin-bottom:20px;color:#fff;font-size:2em;text-shadow:1px 1px 5px rgba(0,0,0,0.5);z-index:10;text-align:center;}
+</style>
 </head>
 <body>
-    <div class="container">
-        <h1>Neural Network Simulation</h1>
-        <canvas id="network-canvas" width="1200" height="800"></canvas>
-        <div class="controls">
-            <button id="reset-btn" class="control-btn">Reset Network</button>
-            <button id="toggle-sim-btn" class="control-btn">Start Simulation</button>
-            <button id="reward-btn" class="control-btn">Reward</button>
-            <button id="punish-btn" class="control-btn">Punish</button>
-            <!-- <button id="game-btn" class="control-btn">Start Game</button> -->
-        </div>
-    </div>
-    <div id="error-console">
-        <div id="error-console-content"></div>
-    </div>
-    <button id="toggle-console-btn">Show Console</button>
+<div class="container">
+  <div class="board-container">
+    <canvas id="gameCanvas" width="500" height="500"></canvas>
+  </div>
+  <div class="network-container">
+    <canvas id="networkCanvas" width="500" height="500"></canvas>
+  </div>
+</div>
+<script>
+function zeros(n){return Array(n).fill(0);}
+function zeros2(rows,cols){let a=[];for(let i=0;i<rows;i++){a.push(zeros(cols));}return a;}
+function randomUniform(min,max){return Math.random()*(max-min)+min;}
+function randomMatrix(rows,cols,min,max){let m=zeros2(rows,cols);for(let i=0;i<rows;i++){for(let j=0;j<cols;j++){m[i][j]=randomUniform(min,max);}}return m;}
+function dotVector(a,b){let s=0;for(let i=0;i<a.length;i++){s+=a[i]*b[i];}return s;}
+function matVecMul(M,v){let o=[];for(let i=0;i<M.length;i++){let s=0;for(let j=0;j<v.length;j++){s+=M[i][j]*v[j];}o.push(s);}return o;}
+function outerProduct(a,b){let o=zeros2(a.length,b.length);for(let i=0;i<a.length;i++){for(let j=0;j<b.length;j++){o[i][j]=a[i]*b[j];}}return o;}
+function addVectors(a,b){return a.map((x,i)=>x+b[i]);}
+function scalarMulVector(s,v){return v.map(x=>s*x);}
+function vectorNorm(v){return Math.sqrt(v.reduce((s,x)=>s+x*x,0));}
+function clipVector(v,minVal,maxVal){return v.map(x=>Math.max(minVal,Math.min(x,maxVal)));}
+function clipMatrix(M,wmax){for(let i=0;i<M.length;i++){for(let j=0;j<M[i].length;j++){M[i][j]=Math.max(-wmax,Math.min(wmax,M[i][j]));}}}
 
-    <script>
-        class Vector2D {
-            constructor(x, y) {
-                this.x = x;
-                this.y = y;
-            }
-
-            add(v) {
-                return new Vector2D(this.x + v.x, this.y + v.y);
-            }
-
-            subtract(v) {
-                return new Vector2D(this.x - v.x, this.y - v.y);
-            }
-
-            multiply(scalar) {
-                return new Vector2D(this.x * scalar, this.y * scalar);
-            }
-
-            magnitude() {
-                return Math.sqrt(this.x * this.x + this.y * this.y);
-            }
-
-            normalize() {
-                const mag = this.magnitude();
-                return new Vector2D(this.x / mag, this.y / mag);
-            }
-
-            rotate(angle) {
-                const cos = Math.cos(angle);
-                const sin = Math.sin(angle);
-                return new Vector2D(
-                    this.x * cos - this.y * sin,
-                    this.x * sin + this.y * cos
-                );
-            }
+class ESN {
+  constructor({n_input, n_reservoir, n_output, spectral_radius=0.9, sparsity=0.1, input_scaling=1.0, bias_scaling=0.2, leaking_rate=0.9, use_feedback=true, res_lr=1e-5, res_decay=1e-6, bcm_theta=1e-2, w_max=1.0, out_lr=1e-5, out_decay=1e-6, w_out_max=1.0, ip_lr=1e-5, target_mean=0.0, target_var=0.1, layer_norm=false, prune_threshold=0.01, new_conn_prob=0.1, activity_window=100, min_sparsity=0.05, max_sparsity=0.3, punishment_strength=0.2, punishment_decay=0.95, local_sparsity_increase=0.1, punishment_window=50, seed=null, bcm_adaptive=true, bcm_eta=1e-3, adaptive_res_lr=true, res_lr_decay=0.9999, ip_alpha=0.01, gain_min=0.1, gain_max=10.0, min_conn_age=10, max_conn_change_fraction=0.05, punish_threshold=0.5, reservoir_dropout_rate=0.0, noise_level=0.0, momentum=0.0, p_init=0.25, stdp_lr=1e-6}){
+    this.n_input=n_input; this.n_reservoir=n_reservoir; this.n_output=n_output; this.spectral_radius=spectral_radius; this.sparsity=sparsity; this.input_scaling=input_scaling; this.bias_scaling=bias_scaling; this.leaking_rate=leaking_rate; this.use_feedback=use_feedback; this.res_lr=res_lr; this.res_decay=res_decay; this.bcm_theta=bcm_theta; this.w_max=w_max; this.out_lr=out_lr; this.out_decay=out_decay; this.w_out_max=w_out_max; this.ip_lr=ip_lr; this.target_mean=target_mean; this.target_var=target_var; this.layer_norm=layer_norm; this.stdp_lr=stdp_lr;
+    this.reservoir_state=zeros(this.n_reservoir);
+    this.intrinsic_gain=Array(this.n_reservoir).fill(1.0);
+    this.intrinsic_bias=zeros(this.n_reservoir);
+    this.W_in=null; this.W=null; this.W_fb=null; this.W_out=null;
+    this.p_init=p_init;
+    this.neuron_types=[]; for(let i=0;i<this.n_reservoir;i++){this.neuron_types.push((Math.random()<0.8)?'E':'I');}
+    this.initialize_weights();
+    this.num_steps=0;
+    this.prune_threshold=prune_threshold;
+    this.new_conn_prob=new_conn_prob;
+    this.activity_window=activity_window;
+    this.activity_history=[];
+    for(let i=0;i<this.n_reservoir;i++){this.activity_history.push([]);}
+    this.conn_ages=zeros2(this.n_reservoir,this.n_reservoir);
+    this.punishment_strength=punishment_strength;
+    this.punishment_decay=punishment_decay;
+    this.local_sparsity_increase=local_sparsity_increase;
+    this.punishment_window=punishment_window;
+    this.punishment_level=0.0;
+    this.punished_neurons=new Set();
+    this.neuron_recovery=Array(this.n_reservoir).fill(1.0);
+    this.bcm_adaptive=bcm_adaptive; this.bcm_eta=bcm_eta;
+    this.bcm_thresholds=(bcm_adaptive)? Array(this.n_reservoir).fill(bcm_theta) : null;
+    this.adaptive_res_lr=adaptive_res_lr; this.res_lr_decay=res_lr_decay; this.ip_alpha=ip_alpha; this.gain_min=gain_min; this.gain_max=gain_max;
+    this.min_conn_age=min_conn_age; this.max_conn_change_fraction=max_conn_change_fraction; this.punish_threshold=punish_threshold; this.reservoir_dropout_rate=reservoir_dropout_rate;
+    this.noise_level=noise_level; this.momentum=momentum; this.W_update_m=null; this.W_out_update_m=null;
+    this.dopamine=1.0;
+  }
+  average_weight_magnitude(){
+    let sumRes=0; for(let i=0;i<this.W.length;i++){ sumRes+=this.W[i].reduce((s,x)=>s+Math.abs(x),0); }
+    let avgRes=sumRes/(this.n_reservoir*this.n_reservoir);
+    let sumIn=0; for(let i=0;i<this.W_in.length;i++){ sumIn+=this.W_in[i].reduce((s,x)=>s+Math.abs(x),0); }
+    let avgIn=sumIn/(this.n_reservoir*this.W_in[0].length);
+    let sumOut=0; for(let i=0;i<this.W_out.length;i++){ sumOut+=this.W_out[i].reduce((s,x)=>s+Math.abs(x),0); }
+    let avgOut=sumOut/(this.n_output*this.W_out[0].length);
+    return {avgIn,avgRes,avgOut};
+  }
+  _update_activity_history(){
+    let abs_state=this.reservoir_state.map(Math.abs);
+    for(let i=0;i<abs_state.length;i++){
+      let hist=this.activity_history[i];
+      hist.push(abs_state[i]);
+      if(hist.length>this.activity_window){ hist.shift(); }
+    }
+  }
+  _compute_activity_correlation(i,j){
+    let hist_i=this.activity_history[i], hist_j=this.activity_history[j];
+    if(hist_i.length<2 || hist_j.length<2)return 0.0;
+    let mi=hist_i.reduce((a,b)=>a+b,0)/hist_i.length, mj=hist_j.reduce((a,b)=>a+b,0)/hist_j.length;
+    let num=0, den1=0, den2=0;
+    for(let k=0;k<hist_i.length;k++){
+      num+=(hist_i[k]-mi)*(hist_j[k]-mj);
+      den1+=(hist_i[k]-mi)**2;
+      den2+=(hist_j[k]-mj)**2;
+    }
+    let den=Math.sqrt(den1*den2);
+    return (den>1e-10)? num/den : 0.0;
+  }
+  _approx_spectral_radius(W,num_iterations=10){
+    let n=W.length;
+    if(n===0)return 0.0;
+    let v=[]; for(let i=0;i<n;i++){ v.push(randomUniform(-0.5,0.5)); }
+    for(let iter=0;iter<num_iterations;iter++){
+      v=matVecMul(W,v);
+      let norm=vectorNorm(v);
+      if(norm<1e-30)return 0.0;
+      v=scalarMulVector(1/norm,v);
+    }
+    let Wv=matVecMul(W,v);
+    let num=dotVector(v,Wv), den=dotVector(v,v);
+    return Math.abs(num/den);
+  }
+  _bound_weights(W,wmax){ clipMatrix(W,wmax); }
+  _structural_update(){
+    let total_connections=0;
+    for(let i=0;i<this.n_reservoir;i++){
+      for(let j=0;j<this.n_reservoir;j++){
+        if(Math.abs(this.W[i][j])>1e-12) total_connections++;
+      }
+    }
+    if(total_connections===0)return;
+    let prune_candidates=[];
+    for(let i=0;i<this.n_reservoir;i++){
+      for(let j=0;j<this.n_reservoir;j++){
+        if(Math.abs(this.W[i][j])>1e-12 && this.conn_ages[i][j]>this.min_conn_age && Math.abs(this.W[i][j])<this.prune_threshold){
+          let c=Math.abs(this._compute_activity_correlation(i,j));
+          if(c<0.1) prune_candidates.push({i,j});
         }
-
-        class Neuron {
-            constructor(position, type = 'excitatory') {
-                this.position = position;
-                this.type = type;
-                this.voltage = -70;
-                this.threshold = -55;
-                this.is_spiking = false;
-                this.refractory_period = 2;
-                this.refractory_timer = 0;
-                this.time = 0;
-                this.received_signals = 0;
-                this.target_voltage = -70;
-                this.voltage_recovery_rate = 0.1;
-                this.target_activation = 0;
-                this.activation_recovery_rate = 0.05;
-                this.target_stimulation_level = 0;
-                this.stimulation_recovery_rate = 0.01;
-                
-                this.dendrites = [];
-                this.axons = [];
-                this.synapses = [];
-                this.neighboring_neurons = [];
-
-                this.atp = 1000000;
-                this.atp_consumption_rate = 100;
-                this.atp_production_rate = 110;
-
-                this.channel_open_probability = 0.5;
-                this.vesicle_release_probability = 0.3;
-
-                this.network_activity = 0;
-
-                this.visual_element = null;
-
-                this.a = 0.02;
-                this.b = 0.2;
-                this.c = -65;
-                this.d = 2;
-                this.u = this.b * this.voltage;
-
-                this.g_Na = 120; 
-                this.g_K = 36;   
-                this.g_L = 0.3;  
-                this.E_Na = 55;  
-                this.E_K = -77;  
-                this.E_L = -54;  
-                this.m = 0.05;   
-                this.h = 0.54;   
-                this.n = 0.34;   
-
-                this.capacitance = 1;
-
-                this.glutamate = 0;
-                this.gaba = 0;
-                this.dopamine = 0;
-                this.serotonin = 0;
-                this.activation = 0;
-                this.flash_duration = 0;
-
-                this.stimulation_level = 0;
-                this.stimulation_decay_rate = 0.1;
-                this.activation_threshold = 0.5; 
-                this.bdnf_level = 1.0;
-                this.growth_factor = 1.0;
-                this.branch_probability = 0.05;
-                this.stimulation_color = 'rgb(0, 0, 255)';
-
-                this.protein_synthesis_rate = 0.1;
-                this.gene_expression_level = 1.0;
-                this.metabolic_rate = 1.0;
-
-                this.calcium_concentration = 0.0001;
-                this.potassium_concentration = 5.0;
-                this.sodium_concentration = 15.0;
-
-                this.resting_potential = -70;
-                this.voltage = this.resting_potential;
-
-                this.absolute_refractory_period = 1;
-                this.relative_refractory_period = 5;
-
-                this.neurotransmitter_release_probability = 0.5;
-                this.neurotransmitter_reuptake_rate = 0.1;
-
-                this.dopamine_receptors = Math.random() * 0.5 + 0.5; 
-                this.serotonin_receptors = Math.random() * 0.5 + 0.5;
-                this.dopamine_level = 0;
-                this.serotonin_level = 0;
-
-                this.neurotransmitters = {
-                    glutamate: { vesicles: 1000, recycling_pool: 100, readily_releasable_pool: 10, synthesis_rate: 0.1 },
-                    gaba: { vesicles: 1000, recycling_pool: 100, readily_releasable_pool: 10, synthesis_rate: 0.1 },
-                    dopamine: { vesicles: 500, recycling_pool: 50, readily_releasable_pool: 5, synthesis_rate: 0.05 },
-                    serotonin: { vesicles: 500, recycling_pool: 50, readily_releasable_pool: 5, synthesis_rate: 0.05 },
-                    norepinephrine: { vesicles: 500, recycling_pool: 50, readily_releasable_pool: 5, synthesis_rate: 0.05 },
-                    acetylcholine: { vesicles: 500, recycling_pool: 50, readily_releasable_pool: 5, synthesis_rate: 0.05 }
-                };
-
-                this.ion_channels = {
-                    nav1_1: { activation: 0, inactivation: 1, density: 10, conductance: 20 },
-                    nav1_6: { activation: 0, inactivation: 1, density: 15, conductance: 25 },
-                    kv1: { activation: 0, density: 5, conductance: 10 },
-                    kv3: { activation: 0, density: 5, conductance: 15 },
-                    kv7: { activation: 0, density: 3, conductance: 5 },
-                    cav2_1: { activation: 0, inactivation: 1, density: 2, conductance: 5 },
-                    cav3_1: { activation: 0, inactivation: 1, density: 1, conductance: 3 },
-                    hcn1: { activation: 0, density: 1, conductance: 1 },
-                    hcn2: { activation: 0, density: 1, conductance: 1 },
-                    kir: { activation: 0, density: 2, conductance: 2 },
-                };
-
-                this.signaling_pathways = {
-                    camkii: { activation: 0 },
-                    pka: { activation: 0 },
-                    mapk: { activation: 0 },
-                    pi3k: { activation: 0 }
-                };
-
-                this.metabolism = {
-                    atp: 1000000,
-                    adp: 100000,
-                    amp: 10000,
-                    glucose: 500000,
-                    lactate: 100000,
-                    oxygen: 1000000,
-                    mitochondria: 1000,
-                    creatine_phosphate: 500000,
-                    creatine: 100000,
-                    nad: 100000,
-                    nadh: 10000,
-                    fadh2: 10000,
-                };
-
-                this.gene_expression = {
-                    bdnf: { mrna: 100, protein: 1000, methylation: 0.1 },
-                    creb: { mrna: 100, protein: 1000, phosphorylation: 0.1 },
-                    arc: { mrna: 100, protein: 1000, acetylation: 0.1 },
-                    fos: { mrna: 100, protein: 1000, methylation: 0.1 },
-                    egr1: { mrna: 100, protein: 1000, acetylation: 0.1 }
-                };
-
-                this.plasticity = {
-                    stdp: { 
-                        a_plus: 0.1, 
-                        a_minus: 0.12, 
-                        tau_plus: 20, 
-                        tau_minus: 20,
-                        nearest_neighbor: true
-                    },
-                    homeostatic: { 
-                        target_activity: 0.1, 
-                        adjustment_rate: 0.01,
-                        sliding_threshold: true
-                    },
-                    metaplasticity: { 
-                        threshold: 0.5, 
-                        rate: 0.001,
-                        bcm_sliding_modification_threshold: 0.5
-                    }
-                };
-
-                this.neuromodulation = {
-                    dopamine_sensitivity: 1,
-                    serotonin_sensitivity: 1,
-                    norepinephrine_sensitivity: 1,
-                    acetylcholine_sensitivity: 1
-                };
-
-                this.glial_interaction = {
-                    astrocyte_coverage: 0.5,
-                    oligodendrocyte_coverage: 0.3,
-                    microglia_state: 'resting'
-                };
-
-                this.dendritic_segments = [];
-                for (let i = 0; i < 10; i++) {
-                    this.dendritic_segments.push({
-                        voltage: -70,
-                        calcium: 0,
-                        nmda_receptors: 100,
-                        ampa_receptors: 500
-                    });
-                }
-
-                this.axon_initial_segment = {
-                    length: 50,
-                    nav_channel_density: 1000 
-                };
-
-                this.myelination = {
-                    degree: 0.8,
-                    node_of_ranvier_count: 100,
-                    internode_length: 1000
-                };
-
-                this.synaptic_properties = {
-                    ampa_receptors: 500,
-                    nmda_receptors: 100,
-                    gaba_a_receptors: 200,
-                    gaba_b_receptors: 50,
-                };
-
-                this.signaling_cascades = {
-                    camkii: { activation: 0, protein: 1000, phosphorylated: 0 },
-                    pka: { activation: 0, protein: 1000, phosphorylated: 0 },
-                    mapk: { activation: 0, protein: 1000, phosphorylated: 0 },
-                    creb: { activation: 0, protein: 1000, phosphorylated: 0 }
-                };
-            }
-
-            update(dt) {
-                if (this.refractory_timer > 0) {
-                    this.refractory_timer -= dt;
-                    if (this.refractory_timer <= this.absolute_refractory_period) {
-                        this.voltage = this.resting_potential + 
-                            (this.voltage - this.resting_potential) * 
-                            (1 - (this.refractory_timer / this.relative_refractory_period));
-                    } else {
-                        this.voltage = this.resting_potential;
-                    }
-                    return;
-                }
-                
-                if (this.atp <= 0) {
-                    return;
-                }
-
-                this.voltage += this.received_signals * 5;
-                this.received_signals = 0;
-
-                this.atp -= this.atp_consumption_rate * dt;
-                this.atp += this.atp_production_rate * dt;
-
-                const [dv, dm, dh, dn] = this.hodgkinHuxleyDerivatives();
-                this.voltage += dv * dt;
-                this.m += dm * dt;
-                this.h += dh * dt;
-                this.n += dn * dt;
-
-                this.activation *= Math.exp(-this.activation_decay_rate * dt);
-                
-                this.voltage += this.activation * 30 * dt;
-
-                if (this.voltage >= this.threshold && !this.is_spiking && this.refractory_timer <= 0) {
-                    this.spike();
-                    this.releaseNeurotransmitters();
-                    this.propagate_signal();
-                }
-
-                this.voltage += (-0.1 * (this.voltage - this.resting_potential)) * dt;
-                this.activation *= Math.exp(-dt);
-
-                this.time += dt;
-
-                this.glutamate *= Math.exp(-dt / 5);
-                this.gaba *= Math.exp(-dt / 5);
-                this.dopamine *= Math.exp(-dt / 10);
-                this.serotonin *= Math.exp(-dt / 15);
-
-                this.stimulation_level *= Math.exp(-this.stimulation_decay_rate * dt);
-                this.bdnf_level = 1.0 + 0.5 * this.stimulation_level;
-                this.growth_factor = 1.0 + 0.2 * this.stimulation_level;
-
-                for (let axon of this.axons) {
-                    axon.grow(dt);
-                }
-                for (let dendrite of this.dendrites) {
-                    dendrite.grow(dt);
-                }
-
-                if (Math.random() < this.branch_probability * dt) {
-                    this.create_branch();
-                }
-
-                const r = Math.max(0, Math.min(255, Math.floor(255 * this.stimulation_level)));
-                const g = Math.max(0, Math.min(255, Math.floor(255 * (1 - this.stimulation_level))));
-                this.stimulation_color = `rgb(${r}, ${g}, 255)`;
-
-                if (this.refractory_timer <= 0) {
-                    this.is_spiking = false;
-                }
-
-                this.updateProteinSynthesis(dt);
-                this.updateGeneExpression(dt);
-                this.updateMetabolism(dt);
-                this.updateIonConcentrations(dt);
-                this.updateNeurotransmitters(dt);
-                this.updateIonChannels(dt);
-                this.updateSynapticPlasticity(dt);
-                this.updateMembranePotential(dt);
-                this.updateSignalingPathways(dt);
-                this.updateNeuromodulation(dt);
-                this.updateGlialInteraction(dt);
-                this.updateDendriticComputation(dt);
-                this.updateAxonalConduction(dt);
-                this.updateNetworkEffects(dt);
-                this.updateSignalingCascades(dt);
-                this.updateNeurotransmitterLevels(dt);
-                this.updateHomeostasis(dt);
-
-                this.updateVisualRepresentation();
-            }
-
-            spike() {
-                this.is_spiking = true;
-                this.voltage = 40;
-                this.refractory_timer = this.refractory_period;
-                this.activation = 1;
-                this.releaseNeurotransmitters();
-                this.flash_duration = 1;
-                this.voltage = this.c;
-                this.activation = 1;
-            }
-
-            updateHomeostasis(dt) {
-                this.voltage += (this.target_voltage - this.voltage) * this.voltage_recovery_rate * dt;
-
-                this.activation += (this.target_activation - this.activation) * this.activation_recovery_rate * dt;
-
-                this.stimulation_level += (this.target_stimulation_level - this.stimulation_level) * this.stimulation_recovery_rate * dt;
-
-                this.voltage = Math.max(this.resting_potential, Math.min(this.voltage, 40));
-                this.activation = Math.max(0, Math.min(this.activation, 1));
-                this.stimulation_level = Math.max(0, Math.min(this.stimulation_level, 1));
-            }
-
-            updateNeurotransmitterLevels(dt) {
-                this.dopamine_level *= Math.exp(-dt / 10); 
-                this.serotonin_level *= Math.exp(-dt / 20);
-
-                this.threshold -= this.dopamine_level * this.dopamine_receptors * 5;
-                this.threshold = Math.max(this.threshold, -65);
-
-                this.threshold += this.serotonin_level * this.serotonin_receptors * 3;
-                this.threshold = Math.min(this.threshold, -45); 
-            }
-
-            stimulate(amount) {
-                this.stimulation_level += amount;
-                this.stimulation_level = Math.min(this.stimulation_level, 0.9);
-                this.voltage += amount * 30;
-                
-                if (!this.is_spiking && this.refractory_timer <= 0) {
-                    this.spike();
-                }
-                
-                this.flash_duration = 1;
-                
-                const r = Math.max(0, Math.min(255, Math.floor(255 * this.stimulation_level)));
-                const g = Math.max(0, Math.min(255, Math.floor(255 * (1 - this.stimulation_level))));
-                this.stimulation_color = `rgb(${r}, ${g}, 255)`;
-            }
-
-            updateSignalingCascades(dt) {
-                for (let cascade in this.signaling_cascades) {
-                    let c = this.signaling_cascades[cascade];
-                    if (this.calcium_concentration > 0.0002) {
-                        c.activation += 0.1 * dt;
-                        let phosphorylation_rate = 0.01 * c.activation * (c.protein - c.phosphorylated) * dt;
-                        c.protein -= phosphorylation_rate;
-                        c.phosphorylated += phosphorylation_rate;
-                    } else {
-                        c.activation *= Math.exp(-dt / 1000);
-                        let dephosphorylation_rate = 0.001 * c.phosphorylated * dt;
-                        c.protein += dephosphorylation_rate;
-                        c.phosphorylated -= dephosphorylation_rate;
-                    }
-                }
-            }
-
-            alphaActivation(channel, v) {
-                switch(channel) {
-                    case 'nav1_1':
-                    case 'nav1_6':
-                        return 0.1 * (v + 40) / (1 - Math.exp(-(v + 40) / 10));
-                    case 'kv1':
-                    case 'kv3':
-                    case 'kv7':
-                        return 0.01 * (v + 55) / (1 - Math.exp(-(v + 55) / 10));
-                    case 'cav2_1':
-                    case 'cav3_1':
-                        return 0.055 * (v + 27) / (1 - Math.exp(-(v + 27) / 3.8));
-                    case 'hcn1':
-                    case 'hcn2':
-                        return 0.001 * Math.exp((v + 90) / 20);
-                    case 'kir':
-                        return 0.1 * Math.exp((v + 90) / 20);
-                    default:
-                        return 0;
-                }
-            }
-
-            betaActivation(channel, v) {
-                switch(channel) {
-                    case 'nav1_1':
-                    case 'nav1_6':
-                        return 4 * Math.exp(-(v + 65) / 18);
-                    case 'kv1':
-                    case 'kv3':
-                    case 'kv7':
-                        return 0.125 * Math.exp(-(v + 65) / 80);
-                    case 'cav2_1':
-                    case 'cav3_1':
-                        return 0.94 * Math.exp(-(v + 75) / 17);
-                    case 'hcn1':
-                    case 'hcn2':
-                        return 0.001 * Math.exp(-(v + 90) / 20);
-                    case 'kir':
-                        return 0.1 * Math.exp(-(v + 90) / 20);
-                    default:
-                        return 0;
-                }
-            }
-
-            alphaInactivation(channel, v) {
-                switch(channel) {
-                    case 'nav1_1':
-                    case 'nav1_6':
-                        return 0.07 * Math.exp(-(v + 65) / 20);
-                    case 'cav2_1':
-                    case 'cav3_1':
-                        return 0.000457 * Math.exp(-(v + 13) / 50);
-                    default:
-                        return 0;
-                }
-            }
-
-            betaInactivation(channel, v) {
-                switch(channel) {
-                    case 'nav1_1':
-                    case 'nav1_6':
-                        return 1 / (1 + Math.exp(-(v + 35) / 10));
-                    case 'cav2_1':
-                    case 'cav3_1':
-                        return 0.0065 / (1 + Math.exp(-(v + 15) / 28));
-                    default:
-                        return 0;
-                }
-            }
-
-            updateMembranePotential(dt) {
-                if (this.refractory_timer > 0) {
-                    this.refractory_timer -= dt;
-                    this.voltage = this.c;
-                    this.is_spiking = false;
-                    return;
-                }
-
-                let dv = (0.04 * this.voltage + 5) * this.voltage + 140 - this.u;
-                let du = this.a * (this.b * this.voltage - this.u);
-
-                this.voltage += dv * dt;
-                this.u += du * dt;
-
-                if (this.voltage >= 30) {
-                    this.is_spiking = true;
-                    this.voltage = this.c;
-                    this.u += this.d;
-                    this.refractory_timer = this.refractory_period;
-                    this.propagateSpike();
-                }
-            }
-
-            propagate_signal() {
-                if (this.atp < 1000) {
-                    return;
-                }
-
-                for (const connection of this.synapses) {
-                    const target_neuron = connection.target;
-                    const signal_strength = connection.weight * (this.type === 'excitatory' ? 1 : -1);
-                    target_neuron.receive_signal(signal_strength, this.type);
-                }
-
-                this.atp -= 1000;
-            }
-
-            updateNetworkEffects(dt) {
-                this.network_activity = this.neighboring_neurons.reduce((sum, neuron) => sum + neuron.activation, 0) / this.neighboring_neurons.length;
-
-                this.activation += 0.1 * (this.network_activity - this.activation) * dt;
-
-                if (this.is_spiking) {
-                    for (let neighbor of this.neighboring_neurons) {
-                        neighbor.receive_signal(0.1, this.type);
-                    }
-                }
-            }
-
-            updateIonChannels(dt) {
-                for (let channel in this.ion_channels) {
-                    let c = this.ion_channels[channel];
-                    c.activation = this.updateChannelState(c.activation, this.alphaActivation(channel, this.voltage), this.betaActivation(channel, this.voltage), dt);
-                    if ('inactivation' in c) {
-                        c.inactivation = this.updateChannelState(c.inactivation, this.alphaInactivation(channel, this.voltage), this.betaInactivation(channel, this.voltage), dt);
-                    }
-                }
-            }
-
-            updateChannelState(state, alpha, beta, dt) {
-                return state + (alpha * (1 - state) - beta * state) * dt;
-            }
-
-            updateNeurotransmitters(dt) {
-                for (let nt in this.neurotransmitters) {
-                    let n = this.neurotransmitters[nt];
-                    n.vesicles += n.synthesis_rate * dt;
-                    if (this.is_spiking) {
-                        let release = Math.min(n.readily_releasable_pool, 5);
-                        n.readily_releasable_pool -= release;
-                        n.recycling_pool += release * 0.8;
-                    }
-                    let replenishment = Math.min(n.recycling_pool, (10 - n.readily_releasable_pool) * 0.1);
-                    n.recycling_pool -= replenishment;
-                    n.readily_releasable_pool += replenishment;
-                }
-            }
-
-            updateSignalingPathways(dt) {
-                if (this.is_spiking) {
-                    this.signaling_pathways.camkii.activation += 0.1;
-                    this.signaling_pathways.mapk.activation += 0.05;
-                }
-                for (let pathway in this.signaling_pathways) {
-                    this.signaling_pathways[pathway].activation *= Math.exp(-dt / 1000);
-                }
-            }
-
-            updateMetabolism(dt) {
-                let glycolysis_rate = Math.min(this.metabolism.glucose, this.metabolism.adp / 2, this.metabolism.nad / 2) * 0.1 * dt;
-                this.metabolism.glucose -= glycolysis_rate;
-                this.metabolism.adp -= 2 * glycolysis_rate;
-                this.metabolism.nad -= 2 * glycolysis_rate;
-                this.metabolism.atp += 2 * glycolysis_rate;
-                this.metabolism.nadh += 2 * glycolysis_rate;
-                this.metabolism.lactate += 2 * glycolysis_rate;
-
-                let oxphos_rate = Math.min(this.metabolism.nadh, this.metabolism.fadh2, this.metabolism.adp / 3, this.metabolism.oxygen / 2) * 0.1 * dt;
-                this.metabolism.nadh -= oxphos_rate;
-                this.metabolism.fadh2 -= oxphos_rate;
-                this.metabolism.adp -= 3 * oxphos_rate;
-                this.metabolism.oxygen -= 2 * oxphos_rate;
-                this.metabolism.atp += 15 * oxphos_rate;
-                this.metabolism.nad += oxphos_rate;
-
-                let creatine_shuttle_rate = (this.metabolism.creatine_phosphate * this.metabolism.adp - this.metabolism.creatine * this.metabolism.atp / 10) * 0.01 * dt;
-                this.metabolism.creatine_phosphate -= creatine_shuttle_rate;
-                this.metabolism.adp -= creatine_shuttle_rate;
-                this.metabolism.creatine += creatine_shuttle_rate;
-                this.metabolism.atp += creatine_shuttle_rate;
-            }
-
-            updateGeneExpression(dt) {
-                for (let gene in this.gene_expression) {
-                    let g = this.gene_expression[gene];
-                    if (this.is_spiking) {
-                        g.mrna += 1 * (1 - g.methylation) * (1 + g.acetylation);
-                    }
-                    g.protein += g.mrna * 0.1 * dt;
-                    g.mrna *= Math.exp(-dt / 3600);
-                    g.protein *= Math.exp(-dt / 86400);
-
-                    if (this.signaling_pathways.camkii.activation > 0.5) {
-                        g.acetylation += 0.01 * dt;
-                    } else {
-                        g.acetylation -= 0.005 * dt;
-                    }
-                    g.acetylation = Math.max(0, Math.min(1, g.acetylation));
-
-                    if (this.signaling_pathways.mapk.activation > 0.5) {
-                        g.methylation -= 0.01 * dt;
-                    } else {
-                        g.methylation += 0.005 * dt;
-                    }
-                    g.methylation = Math.max(0, Math.min(1, g.methylation));
-                }
-            }
-
-            updateSynapticPlasticity(dt) {
-                for (let synapse of this.synapses) {
-                    let delta_t = this.time - synapse.last_spike_time;
-                    let dw = 0;
-                    if (this.plasticity.stdp.nearest_neighbor) {
-                        if (delta_t > 0) {
-                            dw = this.plasticity.stdp.a_plus * Math.exp(-delta_t / this.plasticity.stdp.tau_plus);
-                        } else {
-                            dw = -this.plasticity.stdp.a_minus * Math.exp(delta_t / this.plasticity.stdp.tau_minus);
-                        }
-                    } else {
-                        dw = this.plasticity.stdp.a_plus * Math.exp(-Math.abs(delta_t) / this.plasticity.stdp.tau_plus) -
-                            this.plasticity.stdp.a_minus * Math.exp(-Math.abs(delta_t) / this.plasticity.stdp.tau_minus);
-                    }
-                    synapse.weight += dw;
-
-                    let activity_difference = this.plasticity.homeostatic.target_activity - synapse.average_activity;
-                    if (this.plasticity.homeostatic.sliding_threshold) {
-                        activity_difference *= (1 + synapse.average_activity);
-                    }
-                    synapse.weight += activity_difference * this.plasticity.homeostatic.adjustment_rate * dt;
-
-                    let modification_threshold = this.plasticity.metaplasticity.bcm_sliding_modification_threshold;
-                    let bcm_change = synapse.average_activity * (synapse.average_activity - modification_threshold);
-                    synapse.weight += bcm_change * this.plasticity.metaplasticity.rate * dt;
-
-                    synapse.weight = Math.max(0, Math.min(1, synapse.weight));
-                }
-            }
-
-            updateNeuromodulation(dt) {
-                this.plasticity.stdp.a_plus *= 1 + this.neuromodulation.dopamine_sensitivity * this.neurotransmitters.dopamine.readily_releasable_pool / 10;
-            }
-
-            updateGlialInteraction(dt) {
-                this.neurotransmitters.glutamate.recycling_pool *= 1 - 0.1 * this.glial_interaction.astrocyte_coverage * dt;
-
-                this.myelination.degree += 0.001 * this.glial_interaction.oligodendrocyte_coverage * dt;
-                this.myelination.degree = Math.min(1, this.myelination.degree);
-
-                if (this.glial_interaction.microglia_state === 'active') {
-                    this.metabolism.atp -= 10 * dt;
-                    this.gene_expression.bdnf.protein *= 0.99;
-                }
-            }
-
-            updateDendriticComputation(dt) {
-                for (let segment of this.dendritic_segments) {
-                    let nmda_current = segment.nmda_receptors * (segment.voltage - 0) / (1 + 0.28 * Math.exp(-0.062 * segment.voltage));
-                    
-                    let ampa_current = segment.ampa_receptors * (segment.voltage - 0);
-                    
-                    segment.voltage += (nmda_current + ampa_current) * dt;
-                    
-                    segment.calcium += nmda_current * 0.1 * dt;
-                    segment.calcium *= Math.exp(-dt / 50);
-
-                    if (segment.calcium > 1) {
-                        segment.ampa_receptors *= 1.001;
-                    } else {
-                        segment.ampa_receptors *= 0.999;
-                    }
-                }
-
-                let total_voltage = this.dendritic_segments.reduce((sum, segment) => sum + segment.voltage, 0);
-                if (total_voltage > this.threshold * this.dendritic_segments.length) {
-                    this.voltage += 10;
-                }
-            }
-
-            updateAxonalConduction(dt) {
-                let conduction_velocity = 2 * this.myelination.degree + 0.1;
-                let axon_delay = this.myelination.internode_length / conduction_velocity;
-
-                if (this.is_spiking) {
-                    setTimeout(() => this.triggerAxonTerminals(), axon_delay * 1000);
-                }
-
-                if (this.is_spiking) {
-                    this.myelination.degree += 0.0001;
-                    this.myelination.degree = Math.min(1, this.myelination.degree);
-                }
-            }
-
-            triggerAxonTerminals() {
-                for (let synapse of this.synapses) {
-                    if (synapse.presynaptic_neuron === this) {
-                        synapse.transmitSignal();
-                    }
-                }
-            }
-
-            propagateSpike() {
-                for (let segment of this.dendritic_segments) {
-                    segment.voltage += 20 * Math.exp(-this.dendritic_segments.indexOf(segment) / 3);
-                }
-
-                let ais_nav_current = this.axon_initial_segment.nav_channel_density * this.ion_channels.nav1_6.activation * this.ion_channels.nav1_6.inactivation;
-                if (ais_nav_current > 100) {
-                    this.is_spiking = true;
-                }
-            }
-
-            calculateWeightChange(synapse) {
-                const pre_post_timing = this.time - synapse.last_spike_time;
-                let delta_w = 0;
-
-                if (Math.abs(pre_post_timing) < 20) {
-                    if (pre_post_timing > 0) {
-                        delta_w = Math.exp(-pre_post_timing / 10) * (this.voltage - this.ltp_threshold);
-                    } else {
-                        delta_w = -Math.exp(pre_post_timing / 10) * (this.voltage - this.ltd_threshold);
-                    }
-                }
-
-                return delta_w;
-            }
-
-            updateProteinSynthesis(dt) {
-                this.protein_synthesis_rate += 0.01 * this.stimulation_level * dt;
-                this.protein_synthesis_rate = Math.max(0.1, Math.min(1, this.protein_synthesis_rate));
-            }
-
-            updateIonConcentrations(dt) {
-                if (this.is_spiking) {
-                    this.calcium_concentration += 0.0001;
-                    this.potassium_concentration -= 0.1;
-                    this.sodium_concentration += 0.1;
-                } else {
-                    this.calcium_concentration *= 0.99;
-                    this.potassium_concentration += 0.01;
-                    this.sodium_concentration -= 0.01;
-                }
-                this.calcium_concentration = Math.max(0.0001, Math.min(0.001, this.calcium_concentration));
-                this.potassium_concentration = Math.max(4, Math.min(6, this.potassium_concentration));
-                this.sodium_concentration = Math.max(10, Math.min(20, this.sodium_concentration));
-            }
-
-            hodgkinHuxleyDerivatives() {
-                const alpha_m = 0.1 * (this.voltage + 40) / (1 - Math.exp(-(this.voltage + 40) / 10));
-                const beta_m = 4 * Math.exp(-(this.voltage + 65) / 18);
-                const alpha_h = 0.07 * Math.exp(-(this.voltage + 65) / 20);
-                const beta_h = 1 / (1 + Math.exp(-(this.voltage + 35) / 10));
-                const alpha_n = 0.01 * (this.voltage + 55) / (1 - Math.exp(-(this.voltage + 55) / 10));
-                const beta_n = 0.125 * Math.exp(-(this.voltage + 65) / 80);
-
-                const I_Na = this.g_Na * Math.pow(this.m, 3) * this.h * (this.voltage - this.E_Na);
-                const I_K = this.g_K * Math.pow(this.n, 4) * (this.voltage - this.E_K);
-                const I_L = this.g_L * (this.voltage - this.E_L);
-
-                const dv = (-I_Na - I_K - I_L) / this.capacitance;
-                const dm = alpha_m * (1 - this.m) - beta_m * this.m;
-                const dh = alpha_h * (1 - this.h) - beta_h * this.h;
-                const dn = alpha_n * (1 - this.n) - beta_n * this.n;
-
-                return [dv, dm, dh, dn];
-            }
-
-            releaseNeurotransmitters() {
-                if (Math.random() < this.vesicle_release_probability) {
-                    if (this.type === 'excitatory') {
-                        this.glutamate += 1;
-                    } else if (this.type === 'inhibitory') {
-                        this.gaba += 1;
-                    }
-                    this.atp -= 1000;
-                }
-                this.dopamine += 0.1;
-                this.serotonin += 0.05;
-            }
-
-            receive_signal(strength, type) {
-                if (this.atp < 500) {
-                    return;
-                }
-
-                if (this.refractory_timer > 0) return;
-
-                if (type === 'excitatory') {
-                    this.activation += strength;
-                } else if (type === 'inhibitory') {
-                    this.activation -= strength;
-                }
-
-                this.activation = Math.max(0, Math.min(this.activation, 1));
-                this.stimulation_level += Math.abs(strength) * 0.1;
-                this.stimulation_level = Math.max(0, Math.min(this.stimulation_level, 1));
-                
-                this.voltage += strength * 5;
-                this.updateVisualRepresentation();
-
-                this.atp -= 500;
-
-                if (this.voltage >= this.threshold) {
-                    this.spike();
-                }
-            }
-
-            updateVisualRepresentation() {
-                if (this.visual_element) {
-                    const r = Math.floor(255 * this.stimulation_level);
-                    const g = Math.floor(255 * (1 - this.stimulation_level));
-                    const b = 255;
-                    this.visual_element.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
-                    
-                    const size = 10 + (10 * this.stimulation_level);
-                    this.visual_element.style.width = `${size}px`;
-                    this.visual_element.style.height = `${size}px`;
-                }
-            }
-
-            setVisualElement(element) {
-                this.visual_element = element;
-            }
-
-            create_branch() {
-                if (Math.random() < 0.5 && this.axons.length > 0) {
-                    const axon = this.axons[Math.floor(Math.random() * this.axons.length)];
-                    const new_direction = axon.direction.rotate(Math.random() * Math.PI / 2 - Math.PI / 4);
-                    const new_axon = new Axon(this, new_direction, axon.growth_cone);
-                    this.axons.push(new_axon);
-                } else if (this.dendrites.length > 0) {
-                    const dendrite = this.dendrites[Math.floor(Math.random() * this.dendrites.length)];
-                    const new_direction = dendrite.direction.rotate(Math.random() * Math.PI / 2 - Math.PI / 4);
-                    const new_dendrite = new Dendrite(this, new_direction, dendrite.tip);
-                    this.dendrites.push(new_dendrite);
-                }
-            }
-
-            grow_axon(direction) {
-                this.axons.push(new Axon(this, direction));
-            }
-
-            grow_dendrite(direction) {
-                this.dendrites.push(new Dendrite(this, direction));
-            }
-
-            alphaM(v) { return 0.1 * (v + 40) / (1 - Math.exp(-(v + 40) / 10)); }
-            betaM(v) { return 4 * Math.exp(-(v + 65) / 18); }
-            alphaH(v) { return 0.07 * Math.exp(-(v + 65) / 20); }
-            betaH(v) { return 1 / (1 + Math.exp(-(v + 35) / 10)); }
-            alphaN(v) { return 0.01 * (v + 55) / (1 - Math.exp(-(v + 55) / 10)); }
-            betaN(v) { return 0.125 * Math.exp(-(v + 65) / 80); }
-            alphaC(v) { return 0.055 * (v + 27) / (1 - Math.exp(-(v + 27) / 3.8)); }
-            betaC(v) { return 0.94 * Math.exp(-(v + 75) / 17); }
+      }
+    }
+    for(let k=prune_candidates.length-1;k>0;k--){
+      let j=Math.floor(Math.random()*(k+1));
+      [prune_candidates[k], prune_candidates[j]]=[prune_candidates[j], prune_candidates[k]];
+    }
+    let max_prune=Math.floor(this.max_conn_change_fraction*total_connections);
+    let to_prune=prune_candidates.slice(0,max_prune);
+    for(let pair of to_prune){
+      this.W[pair.i][pair.j]=0.0;
+      this.conn_ages[pair.i][pair.j]=0;
+    }
+    total_connections=0;
+    for(let i=0;i<this.n_reservoir;i++){
+      for(let j=0;j<this.n_reservoir;j++){
+        if(Math.abs(this.W[i][j])>1e-12) total_connections++;
+      }
+    }
+    let current_sparsity=1.0-(total_connections/(this.n_reservoir*this.n_reservoir));
+    if(current_sparsity>this.min_sparsity){
+      let new_conn_candidates=[];
+      for(let i=0;i<this.n_reservoir;i++){
+        for(let j=0;j<this.n_reservoir;j++){
+          if(this.W[i][j]===0.0 && Math.random()<this.new_conn_prob){
+            let c=Math.abs(this._compute_activity_correlation(i,j));
+            if(c>0.2) new_conn_candidates.push({i,j});
+          }
         }
-
-        class Axon {
-            constructor(neuron, direction, start_point = null) {
-                this.neuron = neuron;
-                this.direction = direction;
-                this.length = 0;
-                this.diameter = 1;
-                this.growth_rate = 1;
-                this.growth_cone = start_point || new Vector2D(neuron.position.x, neuron.position.y);
-                this.segments = [this.growth_cone];
-                this.max_segment_length = 5;
-                this.max_length = 1000;
-
-                this.myelination = 0;
-                this.nodes_of_ranvier = [];
-                this.internode_length = 100;
-                this.myelin_thickness = 0;
-
-                this.ion_channels = {
-                    nav1_1: { density: 10, state: 0, activation: 0, inactivation: 1 },
-                    nav1_6: { density: 15, state: 0, activation: 0, inactivation: 1 },
-                    kv1: { density: 5, state: 0, activation: 0 },
-                    kv3: { density: 5, state: 0, activation: 0 },
-                    kv7: { density: 3, state: 0, activation: 0 },
-                    hcn: { density: 1, state: 0, activation: 0 }
-                };
-
-                this.ion_concentrations = {
-                    Na_i: 12, Na_o: 140,
-                    K_i: 155, K_o: 4,
-                    Cl_i: 4, Cl_o: 120,
-                    Ca_i: 0.0001, Ca_o: 2
-                };
-
-                this.capacitance = 1;
-                this.resting_potential = -70;
-                this.voltage = this.resting_potential;
-
-                this.terminals = [];
-                this.synapses = [];
-
-                this.vesicle_pools = {
-                    readily_releasable: 10,
-                    recycling: 40,
-                    reserve: 500
-                };
-
-                this.anterograde_transport = [];
-                this.retrograde_transport = [];
-                this.transport_speed = 1;
-
-                this.microtubules = 0;
-                this.neurofilaments = 0;
-                this.actin_filaments = 0;
-
-                this.mitochondria = [];
-                this.atp = 1000000;
-                this.adp = 100000; 
-                this.glucose = 500000;
-
-                this.ribosomes = 100;
-                this.proteasomes = 50;
-
-                this.guidance_cues = [];
-                this.growth_factors = {
-                    bdnf: 1,
-                    ngf: 1,
-                    nt3: 1
-                };
-
-                this.is_injured = false;
-                this.regeneration_rate = 0;
-
-                this.neuromodulator_receptors = {
-                    dopamine: { density: 1, activation: 0 },
-                    serotonin: { density: 1, activation: 0 },
-                    norepinephrine: { density: 1, activation: 0 }
-                };
-
-                this.ais = {
-                    length: 20,
-                    nav_density: 40,
-                    kv_density: 10
-                };
-            }
-
-            update(dt) {
-                this.updateVoltage(dt);
-                this.updateIonChannels(dt);
-                this.updateIonConcentrations(dt);
-                this.grow(dt);
-                this.updateMyelination(dt);
-                this.transportVesicles(dt);
-                this.updateEnergyMetabolism(dt);
-                this.updateProteinTurnover(dt);
-                this.updateNeuromodulation(dt);
-                this.checkInjuryAndRegeneration(dt);
-            }
-
-            updateVoltage(dt) {
-                const i_Na = this.calculateSodiumCurrent();
-                const i_K = this.calculatePotassiumCurrent();
-                const i_leak = this.calculateLeakCurrent();
-                const i_hcn = this.calculateHCNCurrent();
-
-                const total_current = i_Na + i_K + i_leak + i_hcn;
-                const dV = -total_current / this.capacitance;
-                this.voltage += dV * dt;
-            }
-
-            calculateSodiumCurrent() {
-                const g_Na = this.ion_channels.nav1_1.density * this.ion_channels.nav1_1.activation ** 3 * this.ion_channels.nav1_1.inactivation +
-                            this.ion_channels.nav1_6.density * this.ion_channels.nav1_6.activation ** 3 * this.ion_channels.nav1_6.inactivation;
-                const e_Na = this.nernstPotential('Na');
-                return g_Na * (this.voltage - e_Na);
-            }
-
-            calculatePotassiumCurrent() {
-                const g_K = this.ion_channels.kv1.density * this.ion_channels.kv1.activation ** 4 +
-                            this.ion_channels.kv3.density * this.ion_channels.kv3.activation ** 4 +
-                            this.ion_channels.kv7.density * this.ion_channels.kv7.activation;
-                const e_K = this.nernstPotential('K');
-                return g_K * (this.voltage - e_K);
-            }
-
-            calculateLeakCurrent() {
-                const g_leak = 0.3;
-                const e_leak = -70;
-                return g_leak * (this.voltage - e_leak);
-            }
-
-            calculateHCNCurrent() {
-                const g_hcn = this.ion_channels.hcn.density * this.ion_channels.hcn.activation;
-                const e_hcn = -30;
-                return g_hcn * (this.voltage - e_hcn);
-            }
-
-            nernstPotential(ion) {
-                const R = 8.314; 
-                const T = 310;
-                const F = 96485; 
-                const z = ion === 'Na' || ion === 'K' ? 1 : 2; 
-                const conc_out = this.ion_concentrations[`${ion}_o`];
-                const conc_in = this.ion_concentrations[`${ion}_i`];
-                return (R * T) / (z * F) * Math.log(conc_out / conc_in) * 1000;
-            }
-
-            updateIonChannels(dt) {
-                for (let channel in this.ion_channels) {
-                    this.updateChannelKinetics(channel, dt);
-                }
-            }
-
-            updateChannelKinetics(channel, dt) {
-                const v = this.voltage;
-                const c = this.ion_channels[channel];
-
-                if (channel.startsWith('nav')) {
-                    const alpha_m = 0.1 * (v + 40) / (1 - Math.exp(-(v + 40) / 10));
-                    const beta_m = 4 * Math.exp(-(v + 65) / 18);
-                    const alpha_h = 0.07 * Math.exp(-(v + 65) / 20);
-                    const beta_h = 1 / (1 + Math.exp(-(v + 35) / 10));
-
-                    c.activation += (alpha_m * (1 - c.activation) - beta_m * c.activation) * dt;
-                    c.inactivation += (alpha_h * (1 - c.inactivation) - beta_h * c.inactivation) * dt;
-                } else if (channel.startsWith('kv')) {
-                    const alpha_n = 0.01 * (v + 55) / (1 - Math.exp(-(v + 55) / 10));
-                    const beta_n = 0.125 * Math.exp(-(v + 65) / 80);
-
-                    c.activation += (alpha_n * (1 - c.activation) - beta_n * c.activation) * dt;
-                } else if (channel === 'hcn') {
-                    const tau = 1 / (Math.exp(-(v + 140) / 16) + Math.exp((v + 20) / 15));
-                    const h_inf = 1 / (1 + Math.exp((v + 90) / 8));
-
-                    c.activation += (h_inf - c.activation) / tau * dt;
-                }
-            }
-
-            updateIonConcentrations(dt) {
-                const na_flux = this.calculateSodiumCurrent() * dt * 1e-3;
-                const k_flux = this.calculatePotassiumCurrent() * dt * 1e-3;
-
-                const volume = Math.PI * (this.diameter / 2) ** 2 * this.length * 1e-15;
-
-                this.ion_concentrations.Na_i += na_flux / volume;
-                this.ion_concentrations.K_i -= k_flux / volume;
-
-                const pump_rate = 0.1;
-                this.ion_concentrations.Na_i -= pump_rate * dt;
-                this.ion_concentrations.K_i += 2/3 * pump_rate * dt;
-
-                this.atp -= pump_rate * dt * 1e6;
-            }
-
-            // grow(dt) {
-            //     // if (this.length >= this.max_length) return;
-
-            //     const growth_factor = this.calculateGrowthFactor();
-            //     const growth_amount = this.growth_rate * dt * growth_factor;
-            //     this.length += growth_amount;
-
-            //     const guidance_vector = this.calculateGuidanceVector();
-            //     const growth_direction = this.direction.add(guidance_vector).normalize();
-            //     const growth_vector = growth_direction.multiply(growth_amount);
-            //     this.growth_cone = this.growth_cone.add(growth_vector);
-
-            //     this.addSegment();
-            //     this.updateCytoskeleton(dt);
-            // }
-
-            grow(dt) {
-                if (this.length > this.max_length) {
-                    const overflow = this.length - this.max_length;
-                    const last_segment = this.segments[this.segments.length - 1];
-                    const direction_to_tip = this.growth_cone.subtract(last_segment).normalize();
-                    this.growth_cone = last_segment.add(direction_to_tip.multiply(this.max_segment_length - overflow));
-                    // this.length = this.max_length;
-                }
-
-                if (this.length >= this.max_length) {
-                    return;
-                }
-
-                const growth_factor = this.calculateGrowthFactor();
-
-                const growth_amount = this.growth_rate * dt * growth_factor;
-                this.length += growth_amount;
-                
-                const guidance_vector = new Vector2D(Math.random() - 0.5, Math.random() - 0.5).multiply(5 * (2 - this.neuron.stimulation_level)); // make this more realistic later
-                const growth_direction = this.direction.add(guidance_vector).normalize();
-                const growth_vector = growth_direction.multiply(growth_amount);
-                this.growth_cone = this.growth_cone.add(growth_vector);
-
-                // if (this.growth_cone.subtract(this.segments[this.segments.length - 1]).magnitude() > this.max_segment_length) {
-                //     this.segments.push(new Vector2D(this.growth_cone.x, this.growth_cone.y));
-                // }
-
-                this.addSegment();
-                this.updateCytoskeleton(dt);
-
-                for (const target_neuron of network.neurons) {
-                    if (target_neuron !== this.neuron) {
-                        for (const dendrite of target_neuron.dendrites) {
-                            if (this.check_synapse_formation(dendrite)) {
-                                this.form_synapse(dendrite);
-                            }
-                        }
-                    }
-                }
-            }
-
-            calculateNetrinGradient() {
-                const netrinSource = new Vector2D(100, 100);
-                return new Vector2D(netrinSource.x - this.neuron.position.x, netrinSource.y - this.neuron.position.y).normalize().multiply(0.5);
-            }
-
-            calculateSlitGradient() {
-                const slitSource = new Vector2D(200, 200);
-                return new Vector2D(this.neuron.position.x - slitSource.x, this.neuron.position.y - slitSource.y).normalize().multiply(0.3);
-            }
-
-            calculateSemaphorinGradient() {
-                const semaphorinSource = new Vector2D(150, 150);
-                return new Vector2D(this.neuron.position.x - semaphorinSource.x, this.neuron.position.y - semaphorinSource.y).normalize().multiply(0.2);
-            }
-
-            check_synapse_formation(dendrite) {
-                const distance = this.growth_cone.subtract(dendrite.tip).magnitude();
-                if (distance < 5) {
-                    const formation_probability = 0.1 * this.neuron.bdnf_level * dendrite.neuron.bdnf_level;
-                    return Math.random() < formation_probability;
-                }
-                return false;
-            }
-
-            form_synapse(dendrite) {
-                const synapse = new Synapse(this.neuron, dendrite.neuron);
-                this.neuron.synapses.push(synapse);
-                dendrite.neuron.synapses.push(synapse);
-            }
-
-            calculateGrowthFactor() {
-                return (1 + this.growth_factors.bdnf) * 
-                    (1 + this.growth_factors.ngf) * 
-                    (1 + this.growth_factors.nt3); // *
-                    // (1 + this.neuron.activation);
-            }
-
-            calculateGuidanceVector() {
-                let guidanceVector = new Vector2D(0, 0);
-
-                const netrinGradient = this.calculateNetrinGradient();
-                const slitGradient = this.calculateSlitGradient();
-                const semaphorinGradient = this.calculateSemaphorinGradient();
-
-                // const electricalInfluence = new Vector2D(this.endNeuron.position.x - this.position.x, this.endNeuron.position.y - this.position.y).normalize().multiply(0.4);
-
-                const randomPerturbation = new Vector2D(Math.random() - 0.5, Math.random() - 0.5).normalize().multiply(0.1);
-
-                guidanceVector = guidanceVector.add(netrinGradient)
-                                            .add(slitGradient)
-                                            .add(semaphorinGradient)
-                                            // .add(electricalInfluence)
-                                            .add(randomPerturbation);
-
-                guidanceVector = guidanceVector.normalize();
-
-                return guidanceVector;
-            }
-
-            addSegment() {
-                if (this.growth_cone.subtract(this.segments[this.segments.length - 1]).magnitude() > this.max_segment_length) {
-                    this.segments.push(new Vector2D(this.growth_cone.x, this.growth_cone.y));
-                }
-            }
-
-            updateCytoskeleton(dt) {
-                this.microtubules += 0.1 * dt;
-                this.neurofilaments += 0.05 * dt;
-                this.actin_filaments += 0.2 * dt;
-
-                const stabilization_factor = Math.min(this.length / 100, 1);
-                this.microtubules *= 1 + 0.01 * stabilization_factor * dt;
-                this.neurofilaments *= 1 + 0.005 * stabilization_factor * dt;
-            }
-
-            updateMyelination(dt) {
-                if (this.length > 100 && Math.random() < 0.001 * dt) {
-                    this.myelination += 0.01;
-                    this.myelin_thickness += 0.01;
-
-                    if (this.myelination > 0.9 && this.nodes_of_ranvier.length < Math.floor(this.length / this.internode_length)) {
-                        this.nodes_of_ranvier.push(this.length - this.internode_length / 2);
-                    }
-                }
-
-                if (this.myelination > 0) {
-                    this.ion_channels.nav1_6.density = 15 * (1 - this.myelination) + 150 * this.myelination;
-                    this.ion_channels.kv1.density = 5 * (1 - this.myelination) + 50 * this.myelination;
-                }
-            }
-
-            transportVesicles(dt) {
-                for (let i = this.anterograde_transport.length - 1; i >= 0; i--) {
-                    let vesicle = this.anterograde_transport[i];
-                    vesicle.position += this.transport_speed * dt;
-                    if (vesicle.position > this.length) {
-                        this.deliverVesicle(vesicle);
-                        this.anterograde_transport.splice(i, 1);
-                    }
-                }
-
-                for (let i = this.retrograde_transport.length - 1; i >= 0; i--) {
-                    let vesicle = this.retrograde_transport[i];
-                    vesicle.position -= this.transport_speed * dt;
-                    if (vesicle.position < 0) {
-                        this.processRetrogradeVesicle(vesicle);
-                        this.retrograde_transport.splice(i, 1);
-                    }
-                }
-
-                if (Math.random() < 0.1 * dt) {
-                    this.anterograde_transport.push({ position: 0, cargo: this.generateCargo() });
-                }
-            }
-
-            generateCargo() {
-                const cargo_types = ['synaptic_proteins', 'mitochondria', 'growth_factors', 'ion_channels'];
-                return cargo_types[Math.floor(Math.random() * cargo_types.length)];
-            }
-
-            deliverVesicle(vesicle) {
-                switch (vesicle.cargo) {
-                    case 'synaptic_proteins':
-                        this.vesicle_pools.reserve += 10;
-                        break;
-                    case 'mitochondria':
-                        this.mitochondria.push({ position: this.length, health: 1 });
-                        break;
-                    case 'growth_factors':
-                        this.growth_factors.bdnf *= 1.1;
-                        this.growth_factors.ngf *= 1.05;
-                        break;
-                    case 'ion_channels':
-                        this.addIonChannels(vesicle.cargo);
-                        break;
-                }
-            }
-
-            processRetrogradeVesicle(vesicle) {
-                switch (vesicle.cargo) {
-                    case 'degraded_proteins':
-                        this.ribosomes += 1;
-                        break;
-                    case 'injury_signals':
-                        this.neuron.activateRegenerationProgram();
-                        break;
-                    case 'neurotrophic_factors':
-                        this.neuron.increaseSurvivalSignaling();
-                        break;
-                }
-            }
-
-            addIonChannels(channel_type) {
-                const channel_map = {
-                    'nav': 'nav1_6',
-                    'kv': 'kv1',
-                    'hcn': 'hcn'
-                };
-                if (channel_map[channel_type]) {
-                    this.ion_channels[channel_map[channel_type]].density += 1;
-                }
-            }
-
-            updateEnergyMetabolism(dt) {
-                const base_consumption = this.length * 0.1 * dt;
-                const signaling_consumption = this.calculateIonPumpConsumption(dt);
-                const vesicle_recycling_consumption = this.vesicle_pools.recycling * 0.1 * dt;
-                const total_consumption = base_consumption + signaling_consumption + vesicle_recycling_consumption;
-
-                this.atp -= total_consumption;
-
-                for (let mitochondrion of this.mitochondria) {
-                    this.atp += mitochondrion.produceATP(dt);
-                }
-
-                if (this.atp < 500000 && Math.random() < 0.01 * dt) {
-                    this.mitochondria.push(new Mitochondrion());
-                }
-
-                this.mitochondria = this.mitochondria.filter(m => m.health > 0.1);
-
-                const adp_converted = Math.min(this.adp, 10000 * dt);
-                this.adp -= adp_converted;
-                this.atp += adp_converted;
-
-                this.atp = Math.max(0, this.atp);
-
-                const glucose_consumed = Math.min(this.glucose, 10 * dt);
-                this.glucose -= glucose_consumed;
-                this.atp += glucose_consumed * 30;
-            }
-
-            calculateATPConsumption(dt) {
-                let consumption = 0;
-                consumption += this.length * 0.1 * dt;
-                consumption += this.calculateIonPumpConsumption(dt);
-                consumption += this.vesicle_pools.recycling * 0.1 * dt;
-                consumption += this.ribosomes * 1 * dt;
-                return consumption;
-            }
-
-            calculateIonPumpConsumption(dt) {
-                const na_k_pump_rate = Math.abs(this.calculateSodiumCurrent()) * 0.01;
-                return na_k_pump_rate * dt;
-            }
-
-            updateProteinTurnover(dt) {
-                const new_proteins = this.ribosomes * 0.1 * dt;
-                this.vesicle_pools.reserve += new_proteins * 0.5;
-                this.atp -= new_proteins * 4;
-
-                const degraded_proteins = (this.vesicle_pools.readily_releasable + 
-                                        this.vesicle_pools.recycling + 
-                                        this.vesicle_pools.reserve) * 0.001 * dt;
-                this.vesicle_pools.reserve -= degraded_proteins;
-                
-                if (degraded_proteins > 1) {
-                    this.retrograde_transport.push({
-                        position: this.length,
-                        cargo: 'degraded_proteins',
-                        amount: degraded_proteins
-                    });
-                }
-            }
-
-            updateNeuromodulation(dt) {
-                for (let receptor in this.neuromodulator_receptors) {
-                    const r = this.neuromodulator_receptors[receptor];
-                    const ligand_concentration = this.neuron.neuromodulators[receptor] || 0;
-                    r.activation = this.calculateReceptorActivation(r.activation, ligand_concentration, dt);
-                    
-                    this.applyNeuromodulatorEffects(receptor, r.activation);
-                }
-            }
-
-            calculateReceptorActivation(current_activation, ligand_concentration, dt) {
-                const activation_rate = 0.1 * ligand_concentration;
-                const deactivation_rate = 0.05;
-                return current_activation + (activation_rate * (1 - current_activation) - deactivation_rate * current_activation) * dt;
-            }
-
-            applyNeuromodulatorEffects(receptor, activation) {
-                switch(receptor) {
-                    case 'dopamine':
-                        this.ion_channels.nav1_6.density *= (1 + 0.1 * activation);
-                        break;
-                    case 'serotonin':
-                        this.ion_channels.kv1.density *= (1 + 0.05 * activation);
-                        break;
-                    case 'norepinephrine':
-                        this.growth_rate *= (1 + 0.1 * activation);
-                        break;
-                }
-            }
-
-            checkInjuryAndRegeneration(dt) {
-                if (this.is_injured) {
-                    this.length -= 10 * dt;
-                    if (this.length < 0) this.length = 0;
-
-                    this.regeneration_rate = 0.5 * this.growth_rate;
-                    
-                    this.retrograde_transport.push({
-                        position: this.length,
-                        cargo: 'injury_signals'
-                    });
-                }
-
-                if (this.regeneration_rate > 0) {
-                    const regeneration_amount = this.regeneration_rate * dt;
-                    this.length += regeneration_amount;
-                    this.growth_cone = this.growth_cone.add(this.direction.multiply(regeneration_amount));
-
-                    this.regeneration_rate *= 0.99;
-                    if (this.regeneration_rate < 0.01 * this.growth_rate) {
-                        this.regeneration_rate = 0;
-                        this.is_injured = false;
-                    }
-                }
-            }
-
-            propagateActionPotential() {
-                if (this.voltage > -55) {
-                    this.voltage = 40;
-                    
-                    this.ion_channels.nav1_6.activation = 1;
-                    this.ion_channels.kv1.activation = 1;
-
-                    setTimeout(() => {
-                        if (this.length > 100) {
-                            this.propagateToNextNode();
-                        } else {
-                            this.triggerNeurotransmitterRelease();
-                        }
-                    }, this.calculatePropagationDelay());
-                }
-            }
-
-            propagateToNextNode() {
-                const next_node_index = this.nodes_of_ranvier.findIndex(node => node > this.voltage_position);
-                if (next_node_index !== -1) {
-                    this.voltage_position = this.nodes_of_ranvier[next_node_index];
-                    this.propagateActionPotential();
-                } else {
-                    this.triggerNeurotransmitterRelease();
-                }
-            }
-
-            calculatePropagationDelay() {
-                const segment_length = this.myelination > 0.5 ? this.internode_length : 1;
-                const propagation_speed = this.myelination > 0.5 ? 100 : 10;
-                return (segment_length / propagation_speed) * 1000;
-            }
-
-            triggerNeurotransmitterRelease() {
-                const release_probability = 0.5;
-                if (Math.random() < release_probability) {
-                    const released_vesicles = Math.floor(this.vesicle_pools.readily_releasable * 0.1);
-                    this.vesicle_pools.readily_releasable -= released_vesicles;
-                    
-                    for (let synapse of this.synapses) {
-                        synapse.receiveNeurotransmitter(released_vesicles);
-                    }
-
-                    setTimeout(() => this.recycleVesicles(released_vesicles), 500);
-                }
-            }
-
-            recycleVesicles(count) {
-                const recycled = Math.floor(count * 0.8);
-                this.vesicle_pools.recycling += recycled;
-                
-                setTimeout(() => {
-                    const replenished = Math.min(this.vesicle_pools.recycling, 10);
-                    this.vesicle_pools.recycling -= replenished;
-                    this.vesicle_pools.readily_releasable += replenished;
-                }, 5000);
-            }
-
-            maintainAIS() {
-                const ais_nav_density = 40;
-                const ais_kv_density = 10;
-
-                this.ion_channels.nav1_6.density = ais_nav_density * (this.ais.length / this.length) + 
-                                                this.ion_channels.nav1_6.density * (1 - this.ais.length / this.length);
-                this.ion_channels.kv1.density = ais_kv_density * (this.ais.length / this.length) + 
-                                                this.ion_channels.kv1.density * (1 - this.ais.length / this.length);
-            }
+      }
+      for(let k=new_conn_candidates.length-1;k>0;k--){
+        let j=Math.floor(Math.random()*(k+1));
+        [new_conn_candidates[k], new_conn_candidates[j]]=[new_conn_candidates[j], new_conn_candidates[k]];
+      }
+      let max_new=Math.floor(this.max_conn_change_fraction*(this.n_reservoir*this.n_reservoir));
+      let to_add=new_conn_candidates.slice(0,max_new);
+      for(let pair of to_add){
+        this.W[pair.i][pair.j]=(Math.random()-0.5)*0.1;
+        this.conn_ages[pair.i][pair.j]=1;
+      }
+    }
+    for(let i=0;i<this.n_reservoir;i++){
+      for(let j=0;j<this.n_reservoir;j++){
+        if(Math.abs(this.W[i][j])>1e-12) this.conn_ages[i][j]++;
+      }
+    }
+    let radius=this._approx_spectral_radius(this.W);
+    if(radius>1e-30){
+      let scale=this.spectral_radius/radius;
+      for(let i=0;i<this.W.length;i++){
+        for(let j=0;j<this.W[i].length;j++){
+          this.W[i][j]*=scale;
         }
-
-        class Dendrite {
-            constructor(neuron, direction, start_point = null) {
-                this.neuron = neuron;
-                this.direction = direction;
-                this.length = 0;
-                this.diameter = 1;
-                this.growth_rate = 2;
-                this.tip = start_point || new Vector2D(neuron.position.x, neuron.position.y);
-                this.segments = [this.tip];
-                this.max_segment_length = 3;
-                this.max_length = 300;
-
-                this.spines = [];
-                this.spine_density = 1;
-                this.spine_formation_rate = 0.01;
-                this.spine_elimination_rate = 0.005;
-
-                this.ion_channels = {
-                    ampa: { density: 10, state: 0, conductance: 15 },
-                    nmda: { density: 5, state: 0, conductance: 20 },
-                    vgcc: { density: 2, state: 0, conductance: 10 },
-                    kv: { density: 5, state: 0, conductance: 10 },
-                    hcn: { density: 1, state: 0, conductance: 5 }
-                };
-
-                this.ion_concentrations = {
-                    Na_i: 10, Na_o: 140,
-                    K_i: 140, K_o: 5,
-                    Ca_i: 0.0001, Ca_o: 2,
-                    Cl_i: 4, Cl_o: 110
-                };
-
-                this.capacitance = 1;
-                this.resting_potential = -70;
-                this.local_voltage = this.resting_potential;
-
-                this.synapses = [];
-
-                this.local_protein_synthesis = 0;
-                this.protein_degradation_rate = 0.01;
-                this.receptor_trafficking_rate = 0.05;
-
-                this.camkii_activation = 0;
-                this.mapk_activation = 0;
-                this.creb_activation = 0;
-
-                this.actin_filaments = 100;
-                this.microtubules = 50;
-
-                this.mitochondria = [];
-                this.atp = 1000000;
-                this.adp = 100000;
-
-                this.calcium_concentration = 0.0001;
-                this.calcium_buffers = 1000;
-
-                this.er_calcium = 0.5;
-
-                this.synaptic_tag = 0;
-                this.protein_synthesis_threshold = 0.5;
-
-                this.dopamine_receptors = { density: 1, activation: 0 };
-                this.serotonin_receptors = { density: 1, activation: 0 };
-
-                this.mRNA = {
-                    ampa: 100,
-                    nmda: 50,
-                    camkii: 200
-                };
-
-                this.retrograde_signals = {
-                    bdnf: 0,
-                    no: 0
-                };
-            }
-
-            update(dt) {
-                this.updateVoltage(dt);
-                this.updateCalciumDynamics(dt);
-                this.updateIonChannels(dt);
-                this.updateSpines(dt);
-                this.grow(dt);
-                this.updateProteinSynthesis(dt);
-                this.updateSignalingCascades(dt);
-                this.updateSynapses(dt);
-                this.updateEnergyMetabolism(dt);
-                this.updateNeuromodulation(dt);
-                this.updateRetrogradeSignaling(dt);
-            }
-
-            updateVoltage(dt) {
-                let total_current = 0;
-                total_current += this.calculateSynapticCurrents();
-                total_current += this.calculateChannelCurrents();
-                
-                const dV = total_current / this.capacitance;
-                this.local_voltage += dV * dt;
-
-                this.neuron.voltage += (this.local_voltage - this.neuron.voltage) * 0.1 * dt;
-            }
-
-            calculateSynapticCurrents() {
-                let total_current = 0;
-                for (const synapse of this.synapses) {
-                    total_current += synapse.current(this.local_voltage);
-                }
-                return total_current;
-            }
-
-            calculateChannelCurrents() {
-                const v = this.local_voltage;
-                let total_current = 0;
-
-                total_current += this.ion_channels.ampa.density * this.ion_channels.ampa.state * this.ion_channels.ampa.conductance * (v - 0);
-                total_current += this.ion_channels.nmda.density * this.ion_channels.nmda.state * this.ion_channels.nmda.conductance * (v - 0) / (1 + 0.28 * Math.exp(-0.062 * v));
-                total_current += this.ion_channels.vgcc.density * this.ion_channels.vgcc.state * this.ion_channels.vgcc.conductance * (v - this.nernstPotential('Ca'));
-                total_current += this.ion_channels.kv.density * this.ion_channels.kv.state * this.ion_channels.kv.conductance * (v - this.nernstPotential('K'));
-                total_current += this.ion_channels.hcn.density * this.ion_channels.hcn.state * this.ion_channels.hcn.conductance * (v - (-30));
-
-                return total_current;
-            }
-
-            nernstPotential(ion) {
-                const R = 8.314;
-                const T = 310;
-                const F = 96485;
-                const z = ion === 'Ca' ? 2 : 1;
-                const conc_out = this.ion_concentrations[`${ion}_o`];
-                const conc_in = this.ion_concentrations[`${ion}_i`];
-                return (R * T) / (z * F) * Math.log(conc_out / conc_in) * 1000;
-            }
-
-            updateCalciumDynamics(dt) {
-                const calcium_current = this.ion_channels.nmda.density * this.ion_channels.nmda.state * this.ion_channels.nmda.conductance * (this.local_voltage - this.nernstPotential('Ca')) +
-                                        this.ion_channels.vgcc.density * this.ion_channels.vgcc.state * this.ion_channels.vgcc.conductance * (this.local_voltage - this.nernstPotential('Ca'));
-                
-                this.calcium_concentration += calcium_current * dt * 0.01;
-
-                const buffer_rate = 0.1;
-                const buffered_calcium = this.calcium_concentration * this.calcium_buffers * buffer_rate * dt;
-                this.calcium_concentration -= buffered_calcium;
-
-                const extrusion_rate = 0.1;
-                this.calcium_concentration -= this.calcium_concentration * extrusion_rate * dt;
-
-                if (this.calcium_concentration > 0.0002) {
-                    const er_release_rate = 0.05;
-                    const released_calcium = this.er_calcium * er_release_rate * dt;
-                    this.calcium_concentration += released_calcium;
-                    this.er_calcium -= released_calcium;
-                }
-
-                const er_refill_rate = 0.01;
-                const refilled_calcium = (0.5 - this.er_calcium) * er_refill_rate * dt;
-                this.er_calcium += refilled_calcium;
-                this.calcium_concentration -= refilled_calcium;
-
-                this.calcium_concentration = Math.max(0.0001, Math.min(1, this.calcium_concentration));
-            }
-
-            updateIonChannels(dt) {
-                const v = this.local_voltage;
-
-                this.ion_channels.ampa.state += (this.alphaAMPA(v) * (1 - this.ion_channels.ampa.state) - this.betaAMPA(v) * this.ion_channels.ampa.state) * dt;
-
-                this.ion_channels.nmda.state += (this.alphaNMDA(v) * (1 - this.ion_channels.nmda.state) - this.betaNMDA(v) * this.ion_channels.nmda.state) * dt;
-
-                this.ion_channels.vgcc.state += (this.alphaVGCC(v) * (1 - this.ion_channels.vgcc.state) - this.betaVGCC(v) * this.ion_channels.vgcc.state) * dt;
-
-                this.ion_channels.kv.state += (this.alphaKv(v) * (1 - this.ion_channels.kv.state) - this.betaKv(v) * this.ion_channels.kv.state) * dt;
-
-                this.ion_channels.hcn.state += (this.alphaHCN(v) * (1 - this.ion_channels.hcn.state) - this.betaHCN(v) * this.ion_channels.hcn.state) * dt;
-            }
-
-            alphaAMPA(v) { return 1 / (1 + Math.exp(-(v + 60) / 10)); }
-            betaAMPA(v) { return 1 / (1 + Math.exp((v + 60) / 10)); }
-            alphaNMDA(v) { return 1 / (1 + Math.exp(-(v + 40) / 12.5)) / (1 + 0.3 * Math.exp(-0.1 * v)); }
-            betaNMDA(v) { return 1 / (1 + Math.exp((v + 40) / 12.5)); }
-            alphaVGCC(v) { return 1 / (1 + Math.exp(-(v + 20) / 7)); }
-            betaVGCC(v) { return 1 / (1 + Math.exp((v + 20) / 7)); }
-            alphaKv(v) { return 0.01 * (v + 55) / (1 - Math.exp(-(v + 55) / 10)); }
-            betaKv(v) { return 0.125 * Math.exp(-(v + 65) / 80); }
-            alphaHCN(v) { return 1 / (1 + Math.exp((v + 90) / 8)); }
-            betaHCN(v) { return 1 - 1 / (1 + Math.exp((v + 90) / 8)); }
-
-            updateSpines(dt) {
-                if (Math.random() < this.spine_formation_rate * dt) {
-                    this.spines.push({
-                        position: Math.random() * this.length,
-                        size: 0.5 + Math.random() * 0.5,
-                        stability: Math.random(),
-                        ampa_receptors: 50,
-                        nmda_receptors: 10,
-                        calcium: 0.0001
-                    });
-                }
-
-                for (let i = this.spines.length - 1; i >= 0; i--) {
-                    const spine = this.spines[i];
-
-                    spine.calcium += (this.calcium_concentration - spine.calcium) * 0.1 * dt;
-                    
-                    if (spine.calcium > 0.0005) {
-                        spine.size *= 1 + 0.1 * dt;
-                        spine.stability += 0.01 * dt;
-                        spine.ampa_receptors *= 1.001;
-                        spine.nmda_receptors *= 1.0005;
-                    } else {
-                        spine.size *= 1 - 0.05 * dt;
-                        spine.stability -= 0.005 * dt;
-                        spine.ampa_receptors *= 0.999;
-                        spine.nmda_receptors *= 0.9995;
-                    }
-
-                    spine.size = Math.max(0.1, Math.min(2, spine.size));
-                    spine.stability = Math.max(0, Math.min(1, spine.stability));
-
-                    if (spine.size < 0.1 || spine.stability < 0.1 || Math.random() < this.spine_elimination_rate * dt) {
-                        this.spines.splice(i, 1);
-                    }
-                }
-            }
-
-            // grow(dt) {
-            //     if (this.length >= this.max_length) return;
-
-            //     const growth_factor = this.calculateGrowthFactor();
-            //     const growth_amount = this.growth_rate * dt * growth_factor;
-            //     this.length += growth_amount;
-
-            //     const random_factor = new Vector2D(Math.random() - 0.5, Math.random() - 0.5).multiply(1);
-            //     const growth_direction = this.direction.add(random_factor).normalize();
-            //     const growth_vector = growth_direction.multiply(growth_amount);
-            //     this.tip = this.tip.add(growth_vector);
-
-            //     this.addSegment();
-            //     this.updateCytoskeleton(dt);
-            // }
-
-            grow(dt) {
-                if (this.length > this.max_length) {
-                    const overflow = this.length - this.max_length;
-                    const last_segment = this.segments[this.segments.length - 1];
-                    const direction_to_tip = this.tip.subtract(last_segment).normalize();
-                    this.tip = last_segment.add(direction_to_tip.multiply(this.max_segment_length - overflow));
-                    // this.length = this.max_length;
-                }
-
-                if (this.length >= this.max_length) {
-                    return;
-                }
-
-                const growth_factor = this.calculateGrowthFactor();
-                const growth_amount = this.growth_rate * dt * growth_factor;
-                this.length += growth_amount;
-
-                const random_factor = new Vector2D(Math.random() - 0.5, Math.random() - 0.5).multiply(3 * (2 - this.neuron.stimulation_level)); // make this more realistic later
-                const growth_direction = this.direction.add(random_factor).normalize();
-                const growth_vector = growth_direction.multiply(growth_amount);
-                this.tip = this.tip.add(growth_vector);
-
-                // if (this.tip.subtract(this.segments[this.segments.length - 1]).magnitude() > this.max_segment_length) {
-                //     this.segments.push(new Vector2D(this.tip.x, this.tip.y));
-                // }
-
-                this.addSegment();
-                this.updateCytoskeleton(dt);
-            }
-
-            calculateGrowthFactor() {
-                // const activity_factor = 1 + this.neuron.activation * 0.3;
-                const calcium_factor = 1 + this.calcium_concentration * 1000;
-                const bdnf_factor = 1 + this.neuron.bdnf_level * 0.5;
-                return bdnf_factor; // calcium_factor * activity_factor * 
-            }
-
-            addSegment() {
-                if (this.tip.subtract(this.segments[this.segments.length - 1]).magnitude() > this.max_segment_length) {
-                    this.segments.push(new Vector2D(this.tip.x, this.tip.y));
-                }
-            }
-
-            updateCytoskeleton(dt) {
-                this.actin_filaments += (100 - this.actin_filaments) * 0.1 * dt;
-                if (this.calcium_concentration > 0.0005) {
-                    this.actin_filaments *= 1.01;
-                }
-
-                this.microtubules += (50 - this.microtubules) * 0.05 * dt;
-                if (this.mapk_activation > 0.5) {
-                    this.microtubules *= 1.005;
-                }
-
-                this.actin_filaments = Math.max(50, Math.min(200, this.actin_filaments));
-                this.microtubules = Math.max(25, Math.min(100, this.microtubules));
-            }
-
-            updateProteinSynthesis(dt) {
-                const synthesis_rate = 0.1 * this.calcium_concentration * this.mapk_activation;
-                this.local_protein_synthesis += synthesis_rate * dt;
-
-                for (let mRNA_type in this.mRNA) {
-                    this.mRNA[mRNA_type] += 1 * dt;
-
-                    this.mRNA[mRNA_type] *= Math.exp(-0.1 * dt);
-
-                    const translated_protein = Math.min(this.mRNA[mRNA_type], this.local_protein_synthesis * 0.1 * dt);
-                    this.mRNA[mRNA_type] -= translated_protein;
-
-                    if (mRNA_type === 'ampa') {
-                        this.ion_channels.ampa.density += translated_protein * 0.1;
-                    } else if (mRNA_type === 'nmda') {
-                        this.ion_channels.nmda.density += translated_protein * 0.05;
-                    } else if (mRNA_type === 'camkii') {
-                        this.camkii_activation += translated_protein * 0.01;
-                    }
-                }
-
-                this.local_protein_synthesis *= Math.exp(-this.protein_degradation_rate * dt);
-
-                this.updateReceptorTrafficking(dt);
-            }
-
-            updateReceptorTrafficking(dt) {
-                const trafficking_rate = this.receptor_trafficking_rate * this.local_protein_synthesis * dt;
-
-                const ampa_insertion = trafficking_rate * this.ion_channels.ampa.density;
-                const ampa_internalization = 0.1 * this.ion_channels.ampa.density * dt;
-                this.ion_channels.ampa.density += ampa_insertion - ampa_internalization;
-
-                const nmda_insertion = trafficking_rate * 0.5 * this.ion_channels.nmda.density;
-                const nmda_internalization = 0.05 * this.ion_channels.nmda.density * dt;
-                this.ion_channels.nmda.density += nmda_insertion - nmda_internalization;
-
-                for (let spine of this.spines) {
-                    spine.ampa_receptors += ampa_insertion * 0.1 - spine.ampa_receptors * 0.01 * dt;
-                    spine.nmda_receptors += nmda_insertion * 0.1 - spine.nmda_receptors * 0.005 * dt;
-                }
-            }
-
-            updateSignalingCascades(dt) {
-                const camkii_activation_rate = 10 * this.calcium_concentration * (1 - this.camkii_activation);
-                const camkii_deactivation_rate = 0.1 * this.camkii_activation;
-                this.camkii_activation += (camkii_activation_rate - camkii_deactivation_rate) * dt;
-
-                const mapk_activation_rate = 0.1 * this.camkii_activation * (1 - this.mapk_activation);
-                const mapk_deactivation_rate = 0.05 * this.mapk_activation;
-                this.mapk_activation += (mapk_activation_rate - mapk_deactivation_rate) * dt;
-
-                const creb_activation_rate = 0.2 * this.mapk_activation * (1 - this.creb_activation);
-                const creb_deactivation_rate = 0.1 * this.creb_activation;
-                this.creb_activation += (creb_activation_rate - creb_deactivation_rate) * dt;
-
-                this.synaptic_tag += 0.1 * this.camkii_activation * dt;
-                this.synaptic_tag *= Math.exp(-0.01 * dt);
-
-                if (this.synaptic_tag > this.protein_synthesis_threshold) {
-                    this.local_protein_synthesis += 0.1 * dt;
-                }
-
-                this.camkii_activation = Math.max(0, Math.min(1, this.camkii_activation));
-                this.mapk_activation = Math.max(0, Math.min(1, this.mapk_activation));
-                this.creb_activation = Math.max(0, Math.min(1, this.creb_activation));
-            }
-
-            updateSynapses(dt) {
-                for (let synapse of this.synapses) {
-                    synapse.update(dt);
-
-                    const target_activity = 0.1;
-                    const current_activity = this.neuron.activation;
-                    const scaling_factor = 1 + 0.01 * (target_activity - current_activity) * dt;
-                    synapse.weight *= scaling_factor;
-
-                    if (synapse.weight > synapse.baseline_weight * 1.5) {
-                        this.synaptic_tag += 0.1 * dt;
-                    }
-                }
-            }
-
-            updateEnergyMetabolism(dt) {
-                const base_consumption = 1000 * dt;
-                const signaling_consumption = (this.camkii_activation + this.mapk_activation + this.creb_activation) * 500 * dt;
-                const protein_synthesis_consumption = this.local_protein_synthesis * 1000 * dt;
-                const total_consumption = base_consumption + signaling_consumption + protein_synthesis_consumption;
-
-                this.atp -= total_consumption;
-
-                for (let mitochondrion of this.mitochondria) {
-                    this.atp += mitochondrion.produce_atp(dt);
-                }
-
-                if (this.atp < 500000 && Math.random() < 0.01 * dt) {
-                    this.mitochondria.push(new Mitochondrion());
-                }
-
-                this.mitochondria = this.mitochondria.filter(m => m.health > 0.1);
-
-                const adp_converted = Math.min(this.adp, 10000 * dt);
-                this.adp -= adp_converted;
-                this.atp += adp_converted;
-
-                this.atp = Math.max(0, this.atp);
-            }
-
-            updateNeuromodulation(dt) {
-                const dopamine_level = this.neuron.dopamine_level;
-                this.dopamine_receptors.activation = this.calculateReceptorActivation(
-                    this.dopamine_receptors.activation, dopamine_level, 0.1, 0.05, dt
-                );
-                this.modulate_ampa_trafficking(this.dopamine_receptors.activation);
-
-                const serotonin_level = this.neuron.serotonin_level;
-                this.serotonin_receptors.activation = this.calculateReceptorActivation(
-                    this.serotonin_receptors.activation, serotonin_level, 0.1, 0.05, dt
-                );
-                this.modulate_intrinsic_excitability(this.serotonin_receptors.activation);
-            }
-
-            calculateReceptorActivation(current, ligand_level, on_rate, off_rate, dt) {
-                return current + (on_rate * ligand_level * (1 - current) - off_rate * current) * dt;
-            }
-
-            modulate_ampa_trafficking(dopamine_activation) {
-                this.receptor_trafficking_rate *= (1 + 0.5 * dopamine_activation);
-            }
-
-            modulate_intrinsic_excitability(serotonin_activation) {
-                this.ion_channels.kv.conductance *= (1 - 0.2 * serotonin_activation);
-            }
-
-            updateRetrogradeSignaling(dt) {
-                if (this.calcium_concentration > 0.0005) {
-                    this.retrograde_signals.bdnf += 0.1 * dt;
-                }
-                this.retrograde_signals.bdnf *= Math.exp(-0.1 * dt);
-
-                if (this.calcium_concentration > 0.001) {
-                    this.retrograde_signals.no += 0.2 * dt;
-                }
-                this.retrograde_signals.no *= Math.exp(-0.5 * dt);
-
-                for (let synapse of this.synapses) {
-                    synapse.modulate_presynaptic_release(this.retrograde_signals.bdnf, this.retrograde_signals.no);
-                }
-            }
+      }
+    }
+  }
+  punish(intensity=1.0){
+    this.punishment_level=Math.min(1.0, this.punishment_level+intensity*this.punishment_strength);
+    this.dopamine*=Math.exp(-0.05*intensity); // neuromodulator decreases with strong punishment
+    for(let i=0;i<this.n_reservoir;i++){
+      let recent_avg = (this.activity_history[i].length>0) ? this.activity_history[i].reduce((a,b)=>a+b,0)/this.activity_history[i].length : 0.0;
+      if(recent_avg>this.punish_threshold){
+        for(let j=0;j<this.W[i].length;j++){
+          if(Math.abs(this.W[i][j])>1e-12){
+            let depression = (1.0 + 0.5*this.dopamine) * this.punishment_level * 0.1;
+            this.W[i][j] -= depression * Math.sign(this.W[i][j]);
+          }
         }
-
-        class Mitochondrion {
-            constructor(position) {
-                this.position = position;
-                this.health = 1;
-                this.efficiency = 1;
-                this.atp_production_rate = 1000;
-            }
-
-            update(dt) {
-                this.health *= 0.9999 ** dt;
-                
-                this.efficiency += (Math.random() - 0.5) * 0.01 * dt;
-                this.efficiency = Math.max(0.5, Math.min(1.5, this.efficiency));
-            }
-
-            produceATP(dt) {
-                return this.atp_production_rate * this.health * this.efficiency * dt;
-            }
-
-            divide() {
-                this.health *= 0.9;
-                return new Mitochondrion(this.position);
-            }
-
-            fuse(other) {
-                this.health = (this.health + other.health) / 2;
-                this.efficiency = (this.efficiency + other.efficiency) / 2;
-            }
+        this.intrinsic_bias[i] -= this.punishment_level * 0.05 * this.dopamine;
+        this.intrinsic_gain[i] *= (1.0 - 0.01*this.punishment_level*this.dopamine);
+        this.neuron_recovery[i] = Math.max(0.0, this.neuron_recovery[i]-this.punishment_level*0.1);
+        this.punished_neurons.add(i);
+      }
+    }
+  }
+  _update_punishment_state(){
+    this.punishment_level*=this.punishment_decay;
+    this.dopamine*=1.0+0.01; 
+    let recovered=[];
+    for(let i of this.punished_neurons){
+      this.neuron_recovery[i]=Math.min(1.0, this.neuron_recovery[i]+0.02);
+      if(this.neuron_recovery[i]>0.99){ recovered.push(i); this.intrinsic_bias[i]*=0.98; }
+    }
+    for(let i of recovered){ this.punished_neurons.delete(i); }
+  }
+  initialize_weights(){
+    this.W_in=[];
+    for(let i=0;i<this.n_reservoir;i++){
+      let row=[];
+      for(let j=0;j<this.n_input;j++){
+        row.push(randomUniform(-0.5,0.5)*this.input_scaling*2.0);
+      }
+      row.push(randomUniform(-0.5,0.5)*this.bias_scaling*2.0);
+      this.W_in.push(row);
+    }
+    this.W=zeros2(this.n_reservoir,this.n_reservoir);
+    for(let i=0;i<this.n_reservoir;i++){
+      for(let j=0;j<this.n_reservoir;j++){
+        if(Math.random()<this.p_init){
+          this.W[i][j]=(this.neuron_types[i]==='E')? randomUniform(0,0.5) : randomUniform(-0.5,0);
         }
-
-        class Synapse {
-            constructor(pre_neuron, post_neuron, axon, dendrite, initial_weight = 0.5) {
-                this.pre_neuron = pre_neuron;
-                this.post_neuron = post_neuron;
-                this.axon = axon;
-                this.dendrite = dendrite;
-                this.weight = initial_weight;
-                this.max_weight = 1.0;
-                this.min_weight = 0.1;
-                this.last_spike_time = -Infinity;
-
-                this.is_excitatory = Math.random() < 0.8;
-                this.reversal_potential = this.is_excitatory ? 0 : -70;
-
-                this.readily_releasable_pool = 10;
-                this.recycling_pool = 50;
-                this.reserve_pool = 940;
-                this.total_vesicles = 1000;
-
-                this.neurotransmitter_concentration = 0;
-                this.neurotransmitter_clearance_rate = 0.1;
-
-                this.base_release_probability = 0.3;
-                this.facilitation = 1;
-                this.depression = 1;
-                this.facilitation_rate = 0.1;
-                this.depression_rate = 0.2;
-                this.recovery_rate = 0.01;
-                this.calcium_concentration = 0;
-
-                this.ampa_receptors = 100;
-                this.nmda_receptors = 20;
-                this.gaba_a_receptors = this.is_excitatory ? 0 : 80;
-                this.gaba_b_receptors = this.is_excitatory ? 0 : 20;
-
-                this.ampa_state = 0;
-                this.nmda_state = 0;
-                this.gaba_a_state = 0;
-                this.gaba_b_state = 0;
-
-                this.dopamine_sensitivity = Math.random() * 0.5 + 0.5;
-                this.serotonin_sensitivity = Math.random() * 0.5 + 0.5;
-
-                this.psd_size = 1;
-                this.spine_volume = 1;
-
-                this.local_protein_synthesis = 0;
-                this.receptor_trafficking_rate = 0.01;
-
-                this.camkii_activation = 0;
-                this.pka_activation = 0;
-                this.mapk_activation = 0;
-
-                this.adhesion_strength = 1;
-            }
-
-            update(dt) {
-                this.updateCalciumDynamics(dt);
-                this.updateVesiclePools(dt);
-                this.updateNeurotransmitterRelease(dt);
-                this.updateReceptorStates(dt);
-                this.updateShortTermPlasticity(dt);
-                this.updateLongTermPlasticity(dt);
-                this.updateStructuralPlasticity(dt);
-                this.updateProteinSynthesis(dt);
-                this.updateSignalingCascades(dt);
-                this.updateNeuromodulation(dt);
-            }
-
-            updateCalciumDynamics(dt) {
-                if (this.pre_neuron.is_spiking) {
-                    this.calcium_concentration += 0.1;
-                }
-                this.calcium_concentration *= Math.exp(-dt / 20);
-            }
-
-            updateVesiclePools(dt) {
-                const recycling_rate = 0.1 * dt;
-                const mobilization_rate = 0.05 * dt;
-
-                this.recycling_pool += this.readily_releasable_pool * recycling_rate;
-                this.readily_releasable_pool -= this.readily_releasable_pool * recycling_rate;
-
-                this.recycling_pool += this.reserve_pool * mobilization_rate;
-                this.reserve_pool -= this.reserve_pool * mobilization_rate;
-
-                const total = this.readily_releasable_pool + this.recycling_pool + this.reserve_pool;
-                const scale = this.total_vesicles / total;
-                this.readily_releasable_pool *= scale;
-                this.recycling_pool *= scale;
-                this.reserve_pool *= scale;
-            }
-
-            updateNeurotransmitterRelease(dt) {
-                if (this.pre_neuron.is_spiking) {
-                    const release_probability = this.base_release_probability * this.facilitation / this.depression;
-                    const released_vesicles = Math.floor(this.readily_releasable_pool * release_probability);
-                    this.readily_releasable_pool -= released_vesicles;
-                    this.neurotransmitter_concentration += released_vesicles * 0.1;
-                    this.last_spike_time = this.pre_neuron.time;
-                }
-
-                this.neurotransmitter_concentration *= Math.exp(-this.neurotransmitter_clearance_rate * dt);
-            }
-
-            updateReceptorStates(dt) {
-                const binding_rate = 0.1 * this.neurotransmitter_concentration;
-                const unbinding_rate = 0.01;
-
-                this.ampa_state += (binding_rate * (1 - this.ampa_state) - unbinding_rate * this.ampa_state) * dt;
-                this.nmda_state += (binding_rate * (1 - this.nmda_state) - unbinding_rate * this.nmda_state) * dt;
-                this.gaba_a_state += (binding_rate * (1 - this.gaba_a_state) - unbinding_rate * this.gaba_a_state) * dt;
-                this.gaba_b_state += (binding_rate * (1 - this.gaba_b_state) - unbinding_rate * this.gaba_b_state) * dt;
-            }
-
-            updateShortTermPlasticity(dt) {
-                if (this.pre_neuron.is_spiking) {
-                    this.facilitation *= (1 + this.facilitation_rate);
-                    this.depression *= (1 - this.depression_rate);
-                } else {
-                    this.facilitation += (1 - this.facilitation) * this.recovery_rate * dt;
-                    this.depression += (1 - this.depression) * this.recovery_rate * dt;
-                }
-            }
-
-            updateLongTermPlasticity(dt) {
-                const time_diff = this.post_neuron.time - this.last_spike_time;
-                if (Math.abs(time_diff) < 50) {
-                    const learning_rate = 0.001;
-                    const delta_w = learning_rate * Math.exp(-Math.abs(time_diff) / 20) * Math.sign(time_diff);
-                    this.weight += delta_w;
-                }
-
-                const target_activity = 0.1;
-                const current_activity = this.post_neuron.activation;
-                this.weight += 0.0001 * (target_activity - current_activity) * dt;
-
-                this.weight = Math.max(this.min_weight, Math.min(this.max_weight, this.weight));
-            }
-
-            updateStructuralPlasticity(dt) {
-                if (this.calcium_concentration > 0.5) {
-                    this.psd_size *= 1.001;
-                    this.spine_volume *= 1.001;
-                } else {
-                    this.psd_size *= 0.999;
-                    this.spine_volume *= 0.999;
-                }
-
-                this.psd_size = Math.max(0.5, Math.min(2, this.psd_size));
-                this.spine_volume = Math.max(0.5, Math.min(2, this.spine_volume));
-
-                this.weight *= Math.sqrt(this.psd_size * this.spine_volume);
-            }
-
-            updateProteinSynthesis(dt) {
-                if (this.calcium_concentration > 0.5) {
-                    this.local_protein_synthesis += 0.1 * dt;
-                } else {
-                    this.local_protein_synthesis *= Math.exp(-0.1 * dt);
-                }
-
-                const new_receptors = this.local_protein_synthesis * this.receptor_trafficking_rate * dt;
-                if (this.is_excitatory) {
-                    this.ampa_receptors += new_receptors * 0.8;
-                    this.nmda_receptors += new_receptors * 0.2;
-                } else {
-                    this.gaba_a_receptors += new_receptors * 0.8;
-                    this.gaba_b_receptors += new_receptors * 0.2;
-                }
-            }
-
-            updateSignalingCascades(dt) {
-                this.camkii_activation += (this.calcium_concentration > 0.5 ? 0.1 : -0.1) * dt;
-                this.camkii_activation = Math.max(0, Math.min(1, this.camkii_activation));
-
-                this.pka_activation += 0.01 * (Math.random() - 0.5) * dt;
-                this.pka_activation = Math.max(0, Math.min(1, this.pka_activation));
-
-                this.mapk_activation += 0.01 * (Math.random() - 0.5) * dt;
-                this.mapk_activation = Math.max(0, Math.min(1, this.mapk_activation));
-
-                this.weight *= (1 + 0.01 * this.camkii_activation * dt);
-            }
-
-            updateNeuromodulation(dt) {
-                const dopamine_effect = this.pre_neuron.dopamine_level * this.dopamine_sensitivity;
-                const serotonin_effect = this.pre_neuron.serotonin_level * this.serotonin_sensitivity;
-
-                this.weight += dopamine_effect * 0.01 * dt;
-                this.weight -= serotonin_effect * 0.005 * dt;
-
-                this.base_release_probability *= (1 + 0.1 * dopamine_effect * dt);
-                this.receptor_trafficking_rate *= (1 + 0.05 * serotonin_effect * dt);
-            }
-
-            current(post_voltage) {
-                let total_current = 0;
-
-                if (this.is_excitatory) {
-                    const ampa_current = this.ampa_state * this.ampa_receptors * (post_voltage - 0);
-                    const nmda_current = this.nmda_state * this.nmda_receptors * (post_voltage - 0) / (1 + 0.1 * Math.exp(-0.062 * post_voltage));
-                    total_current = ampa_current + nmda_current;
-                } else {
-                    const gaba_a_current = this.gaba_a_state * this.gaba_a_receptors * (post_voltage - (-70));
-                    const gaba_b_current = this.gaba_b_state * this.gaba_b_receptors * (post_voltage - (-90));
-                    total_current = gaba_a_current + gaba_b_current;
-                }
-
-                return total_current * this.weight * this.psd_size;
-            }
+      }
+    }
+    let r=this._approx_spectral_radius(this.W);
+    if(r>1e-30){
+      let scale=this.spectral_radius/r;
+      for(let i=0;i<this.n_reservoir;i++){
+        for(let j=0;j<this.n_reservoir;j++){
+          this.W[i][j]*=scale;
         }
-
-        class Glia {
-            constructor(position) {
-                this.position = position;
-                this.type = Math.random() < 0.8 ? 'astrocyte' : 'oligodendrocyte';
-                this.size = 10;
-                this.color = this.type === 'astrocyte' ? 'rgba(255, 255, 0, 0.3)' : 'rgba(0, 255, 255, 0.3)';
-                
-                this.glutamate_uptake_rate = 0.1;
-                this.potassium_buffering_rate = 0.05;
-                this.myelination_rate = this.type === 'oligodendrocyte' ? 0.01 : 0;
-            }
-
-            update(dt, nearby_neurons) {
-                if (this.type === 'astrocyte') {
-                    this.updateAstrocyte(dt, nearby_neurons);
-                } else {
-                    this.updateOligodendrocyte(dt, nearby_neurons);
-                }
-            }
-
-            updateAstrocyte(dt, nearby_neurons) {
-                for (const neuron of nearby_neurons) {
-                    const glutamate_uptake = Math.min(neuron.glutamate, this.glutamate_uptake_rate * dt);
-                    neuron.glutamate -= glutamate_uptake;
-
-                    const potassium_buffering = (neuron.potassium_concentration - 5) * this.potassium_buffering_rate * dt;
-                    neuron.potassium_concentration -= potassium_buffering;
-                }
-            }
-
-            updateOligodendrocyte(dt, nearby_neurons) {
-                for (const neuron of nearby_neurons) {
-                    for (const axon of neuron.axons) {
-                        axon.myelination += this.myelination_rate * dt;
-                        axon.myelination = Math.min(axon.myelination, 1);
-                    }
-                }
-            }
+      }
+    }
+    if(this.use_feedback){
+      this.W_fb=randomMatrix(this.n_reservoir,this.n_output,-0.5,0.5).map(row=>row.map(x=>x*0.1));
+    }
+    else{ this.W_fb=null; }
+    let out_dim=this.n_reservoir+this.n_input+1;
+    this.W_out=randomMatrix(this.n_output,out_dim,-0.5,0.5).map(row=>row.map(x=>x*0.1));
+  }
+  reset_state(){
+    this.reservoir_state=zeros(this.n_reservoir);
+    this.num_steps=0;
+    this.ip_avg=zeros(this.n_reservoir);
+    this.ip2_avg=zeros(this.n_reservoir);
+    this.punishment_level=0.0;
+    this.punished_neurons=new Set();
+    this.neuron_recovery=Array(this.n_reservoir).fill(1.0);
+    for(let dq of this.activity_history){ dq.length=0; }
+    this.conn_ages=zeros2(this.n_reservoir,this.n_reservoir);
+    this.W_update_m=null; this.W_out_update_m=null;
+    this.dopamine=1.0;
+  }
+  step(input_vector){
+    if(input_vector.length!==this.n_input) throw new Error("Input dimension mismatch");
+    let extended_input=input_vector.concat([1.0]);
+    let in_term=matVecMul(this.W_in,extended_input);
+    let w_term=matVecMul(this.W,this.reservoir_state);
+    let net=in_term.map((x,i)=> x+w_term[i]);
+    if(this.use_feedback && this.W_fb!==null){
+      let out_prev=matVecMul(this.W_out,this.reservoir_state.concat(extended_input));
+      let fb_term=matVecMul(this.W_fb,out_prev);
+      net=net.map((x,i)=> x+fb_term[i]);
+    }
+    let val=net.map((x,i)=> this.intrinsic_gain[i]*x+this.intrinsic_bias[i]);
+    let new_act=val.map(x=>Math.tanh(x));
+    let alpha=this.leaking_rate;
+    let next_state=this.reservoir_state.map((x,i)=>(1.0-alpha)*x+alpha*new_act[i]);
+    if(this.layer_norm){ let norm=vectorNorm(next_state); if(norm>1e-9) next_state=scalarMulVector(1/norm,next_state); }
+    if(this.reservoir_dropout_rate>0.0){ let mask=next_state.map(()=> (Math.random()<(1.0-this.reservoir_dropout_rate))? 1.0 : 0.0); next_state=next_state.map((x,i)=> x*mask[i]); }
+    if(this.noise_level>0.0){ let noise=next_state.map(()=> randomUniform(-this.noise_level,this.noise_level)); next_state=next_state.map((x,i)=> x+noise[i]); }
+    this.reservoir_state=next_state;
+    let extended_state=this.reservoir_state.concat(extended_input);
+    let y_out=matVecMul(this.W_out,extended_state);
+    return y_out;
+  }
+  learn_step(input_vector){
+    if(this.adaptive_res_lr){ this.res_lr*=this.res_lr_decay; this.out_lr*=this.res_lr_decay; this.ip_lr*=this.res_lr_decay; }
+    let output_vector=this.step(input_vector);
+    let x_new=this.reservoir_state.slice();
+    if(this.bcm_adaptive){
+      let x_sq=x_new.map(x=>x*x);
+      for(let i=0;i<this.n_reservoir;i++){
+        this.bcm_thresholds[i]+=this.bcm_eta*(x_sq[i]-this.bcm_thresholds[i]);
+      }
+    }
+    let factor=this.bcm_adaptive? x_new.map((x,i)=> x*(x-this.bcm_thresholds[i])) : x_new.map(x=> x*(x-this.bcm_theta));
+    let update_matrix=outerProduct(factor,x_new);
+    for(let i=0;i<this.n_reservoir;i++){
+      for(let j=0;j<this.n_reservoir;j++){
+        let delta=this.res_lr*update_matrix[i][j]-this.res_decay*this.W[i][j];
+        if(this.W_update_m===null){ this.W_update_m=zeros2(this.n_reservoir,this.n_reservoir); }
+        this.W_update_m[i][j]=this.momentum*this.W_update_m[i][j]+(1.0-this.momentum)*delta;
+        this.W[i][j]+=this.W_update_m[i][j];
+      }
+    }
+    for(let i=0;i<this.n_reservoir;i++){
+      for(let j=0;j<this.n_reservoir;j++){
+        let delta_stdp=this.stdp_lr*(this.reservoir_state[i]*this.reservoir_state[j]-0.5*this.W[i][j]);
+        this.W[i][j]+=delta_stdp;
+      }
+    }
+    let extended_input=input_vector.concat([1.0]);
+    let extended_res_state=x_new.concat(extended_input);
+    for(let i=0;i<this.n_output;i++){
+      for(let j=0;j<this.W_out[i].length;j++){
+        let delta=this.out_lr*output_vector[i]*extended_res_state[j]-this.out_decay*this.W_out[i][j];
+        if(this.W_out_update_m===null){ this.W_out_update_m=zeros2(this.n_output,this.W_out[i].length); }
+        this.W_out_update_m[i][j]=this.momentum*this.W_out_update_m[i][j]+(1.0-this.momentum)*delta;
+        this.W_out[i][j]+=this.W_out_update_m[i][j];
+      }
+    }
+    for(let i=0;i<this.n_reservoir;i++){
+      this.ip_avg[i]=(1.0-this.ip_alpha)*this.ip_avg[i]+this.ip_alpha*x_new[i];
+      this.ip2_avg[i]=(1.0-this.ip_alpha)*this.ip2_avg[i]+this.ip_alpha*(x_new[i]*x_new[i]);
+      let e_mean=(this.ip_avg[i]-this.target_mean), e_var=(this.ip2_avg[i]-this.target_var);
+      this.intrinsic_bias[i]-=this.ip_lr*e_mean;
+      this.intrinsic_gain[i]-=this.ip_lr*e_var;
+    }
+    this.intrinsic_gain=clipVector(this.intrinsic_gain,this.gain_min,this.gain_max);
+    this._bound_weights(this.W,this.w_max);
+    this._bound_weights(this.W_out,this.w_out_max);
+    if(this.W_fb!==null) this._bound_weights(this.W_fb,1.0);
+    for(let i=0;i<this.n_reservoir;i++){
+      if(this.neuron_types[i]==='E'){
+        for(let j=0;j<this.W[i].length;j++){
+          if(this.W[i][j]<0) this.W[i][j]=0;
         }
-
-        class NeuralNetwork {
-            constructor(num_neurons, num_glia) {
-                this.neurons = [];
-                this.glia = [];
-                for (let i = 0; i < num_neurons; i++) {
-                    const x = Math.random() * 1150 + 25;
-                    const y = Math.random() * 750 + 25;
-                    // neuron.network = this;
-                    this.neurons.push(new Neuron(new Vector2D(x, y)));
-                }
-                for (let i = 0; i < num_glia; i++) {
-                    const x = Math.random() * 1150 + 25;
-                    const y = Math.random() * 750 + 25;
-                    this.glia.push(new Glia(new Vector2D(x, y)));
-                }
-                this.initialize_neuron_growth();
-                // this.initialize_connectivity();
-            }
-
-            initialize_connectivity() {
-                for (const pre_neuron of this.neurons) {
-                    for (const post_neuron of this.neurons) {
-                        if (pre_neuron !== post_neuron && Math.random() < 0.2) {
-                            const synapse = new Synapse(pre_neuron, post_neuron);
-                            pre_neuron.synapses.push(synapse);
-                            post_neuron.synapses.push(synapse);
-                        }
-                    }
-                }
-            }
-
-            initialize_neuron_growth() {
-                for (const neuron of this.neurons) {
-                    const axon_direction = new Vector2D(Math.random() - 0.5, Math.random() - 0.5).normalize();
-                    neuron.grow_axon(axon_direction);
-
-                    const num_dendrites = Math.floor(Math.random() * 4) + 2;
-                    for (let i = 0; i < num_dendrites; i++) {
-                        const dendrite_direction = new Vector2D(Math.random() - 0.5, Math.random() - 0.5).normalize();
-                        neuron.grow_dendrite(dendrite_direction);
-                    }
-                }
-            }
-
-            stimulate_neuron(index) {
-                const neuron = this.neurons[index];
-                neuron.stimulate(10);
-                this.propagate_signal(neuron);
-                
-                neuron.flash_duration = 1;
-            }
-
-            reward(amount = 1) {
-                for (const neuron of this.neurons) {
-                    neuron.dopamine_level += amount * neuron.dopamine_receptors;
-                }
-            }
-
-            punish(amount = 1) {
-                for (const neuron of this.neurons) {
-                    neuron.serotonin_level += amount * neuron.serotonin_receptors;
-                }
-            }
-
-            propagate_signal(neuron, depth = 0) {
-                if (depth > 1) return;
-
-                for (const synapse of neuron.synapses) {
-                    if (synapse.pre_neuron === neuron) {
-                        const signal_strength = synapse.weight * neuron.activation;
-                        
-                        setTimeout(() => {
-                            synapse.post_neuron.receive_signal(signal_strength, neuron.type);
-                            
-                            this.propagate_signal(synapse.post_neuron, depth + 1);
-                        }, 100 * (depth + 1));
-                    }
-                }
-            }
-
-            prune_connections() {
-                for (const neuron of this.neurons) {
-                    neuron.synapses = neuron.synapses.filter(synapse => synapse.weight > 0.1);
-                }
-            }
-
-            getNearbyNeurons(position, radius) {
-                return this.neurons.filter(neuron => 
-                    Math.sqrt(Math.pow(neuron.position.x - position.x, 2) + Math.pow(neuron.position.y - position.y, 2)) < radius
-                );
-            }
-
-            update(dt) {
-                for (const neuron of this.neurons) {
-                    neuron.update(dt);
-                }
-                for (const glial_cell of this.glia) {
-                    const nearby_neurons = this.getNearbyNeurons(glial_cell.position, 50);
-                    glial_cell.update(dt, nearby_neurons);
-                }
-                for (const neuron of this.neurons) {
-                    for (const synapse of neuron.synapses) {
-                        synapse.update(dt);
-                    }
-                }
-            }
+      }
+      else{
+        for(let j=0;j<this.W[i].length;j++){
+          if(this.W[i][j]>0) this.W[i][j]=0;
         }
+      }
+    }
+    this._update_activity_history();
+    this._structural_update();
+    this._update_punishment_state();
+    this.num_steps++;
+    return output_vector;
+  }
+  learn_run(input_sequence){
+    let outputs=[];
+    for(let inp of input_sequence){ let out=this.learn_step(inp); outputs.push(out); }
+    return outputs;
+  }
+}
 
-        let neuron_count = 200;
-        let glia_count = 100;
+class GridGameEnv2D {
+  constructor({gridSize=10,cellSize=50,numTraps=15,esn}={}){
+    this.gridSize=gridSize; this.cellSize=cellSize; this.numTraps=numTraps; this.esn=esn;
+    this.input_channels=2;
+    this.reset();
+  }
+  reset(){
+    this.agentX=Math.floor(randomUniform(0,this.gridSize));
+    this.agentY=Math.floor(randomUniform(0,this.gridSize));
+    this.steps=0;
+    this.traps=[];
+    while(this.traps.length<this.numTraps){
+      let tx=Math.floor(randomUniform(0,this.gridSize));
+      let ty=Math.floor(randomUniform(0,this.gridSize));
+      if(tx===this.agentX && ty===this.agentY) continue;
+      if(!this.traps.some(t=>t.x===tx && t.y===ty)) this.traps.push({x:tx,y:ty});
+    }
+    return this._getObservation();
+  }
+  _getObservation(){
+    let gridTrap=Array(this.gridSize*this.gridSize).fill(0);
+    let gridAgent=Array(this.gridSize*this.gridSize).fill(0);
+    for(let trap of this.traps){ gridTrap[trap.y*this.gridSize+trap.x]=1; }
+    gridAgent[this.agentY*this.gridSize+this.agentX]=1;
+    return gridTrap.concat(gridAgent);
+  }
+  step(action){
+    let validActions=[];
+    if(this.agentY>0) validActions.push(0);
+    if(this.agentY<this.gridSize-1) validActions.push(1);
+    if(this.agentX>0) validActions.push(2);
+    if(this.agentX<this.gridSize-1) validActions.push(3);
+    let desired=action;
+    if(!validActions.includes(action)){
+      desired=validActions[Math.floor(Math.random()*validActions.length)];
+    }
+    let prevX=this.agentX, prevY=this.agentY;
+    if(desired===0) this.agentY-=1; else if(desired===1) this.agentY+=1; else if(desired===2) this.agentX-=1; else if(desired===3) this.agentX+=1;
+    this.steps++;
+    if(this.agentX===prevX && this.agentY===prevY){ this.esn.punish(0.2); }
+    for(let trap of this.traps){ if(trap.x===this.agentX && trap.y===this.agentY) this.esn.punish(0.3); }
+    return {observation:this._getObservation(), info:{}};
+  }
+}
 
-        const canvas = document.getElementById('network-canvas');
-        const ctx = canvas.getContext('2d');
-        let network = new NeuralNetwork(neuron_count, glia_count);
-        let isSimulating = false;
-
-        function drawNetwork() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            ctx.strokeStyle = '#e9ecef';
-            ctx.lineWidth = 0.5;
-            for (let i = 0; i < canvas.width; i += 20) {
-                ctx.beginPath();
-                ctx.moveTo(i, 0);
-                ctx.lineTo(i, canvas.height);
-                ctx.stroke();
-            }
-            for (let i = 0; i < canvas.height; i += 20) {
-                ctx.beginPath();
-                ctx.moveTo(0, i);
-                ctx.lineTo(canvas.width, i);
-                ctx.stroke();
-            }
-
-            for (const glial_cell of network.glia) {
-                ctx.beginPath();
-                ctx.arc(glial_cell.position.x, glial_cell.position.y, glial_cell.size, 0, Math.PI * 2);
-                ctx.fillStyle = glial_cell.color;
-                ctx.fill();
-                ctx.strokeStyle = '#2c3e50';
-                ctx.lineWidth = 1;
-                ctx.stroke();
-            }
-
-            for (const neuron of network.neurons) {
-                for (const axon of neuron.axons) {
-                    ctx.beginPath();
-                    ctx.moveTo(neuron.position.x, neuron.position.y);
-                    for (const segment of axon.segments) {
-                        ctx.lineTo(segment.x, segment.y);
-                    }
-                    ctx.lineTo(axon.growth_cone.x, axon.growth_cone.y);
-                    ctx.strokeStyle = 'rgba(52, 152, 219, 0.3)';
-                    ctx.lineWidth = 1.5;
-                    ctx.stroke();
-                }
-                for (const dendrite of neuron.dendrites) {
-                    ctx.beginPath();
-                    ctx.moveTo(neuron.position.x, neuron.position.y);
-                    for (const segment of dendrite.segments) {
-                        ctx.lineTo(segment.x, segment.y);
-                    }
-                    ctx.lineTo(dendrite.tip.x, dendrite.tip.y);
-                    ctx.strokeStyle = 'rgba(46, 204, 113, 0.3)';
-                    ctx.lineWidth = 1.5;
-                    ctx.stroke();
-                }
-                ctx.beginPath();
-                ctx.arc(neuron.position.x, neuron.position.y, 12, 0, Math.PI * 2 * neuron.dopamine_level);
-                ctx.strokeStyle = 'rgba(46, 204, 113, 0.4)';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-
-                ctx.beginPath();
-                ctx.arc(neuron.position.x, neuron.position.y, 14, 0, Math.PI * 2 * neuron.serotonin_level);
-                ctx.strokeStyle = 'rgba(231, 76, 60, 0.4)';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-            }
-
-            for (const neuron of network.neurons) {
-                for (const synapse of neuron.synapses) {
-                    if (synapse.pre_neuron === neuron) {
-                        ctx.beginPath();
-                        ctx.moveTo(synapse.pre_neuron.position.x, synapse.pre_neuron.position.y);
-                        ctx.lineTo(synapse.post_neuron.position.x, synapse.post_neuron.position.y);
-                        ctx.strokeStyle = `rgba(231, 76, 60, ${synapse.weight * 0.4})`;
-                        ctx.lineWidth = synapse.weight;
-                        ctx.stroke();
-                    }
-                }
-            }
-
-            for (const neuron of network.neurons) {
-                ctx.beginPath();
-                ctx.arc(neuron.position.x, neuron.position.y, 7, 0, Math.PI * 2);
-                const activationLevel = (neuron.voltage + 70) / 110;
-                let color = neuron.is_spiking ? '#e74c3c' : neuron.stimulation_color;
-                
-                if (neuron.flash_duration > 0) {
-                    color = `rgb(255, ${255 - neuron.flash_duration * 10}, 0)`;
-                    neuron.flash_duration--;
-                }
-                
-                ctx.fillStyle = color;
-                ctx.fill();
-                ctx.strokeStyle = '#2c3e50';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-
-                ctx.beginPath();
-                ctx.arc(neuron.position.x, neuron.position.y, 10, 0, Math.PI * 2 * activationLevel);
-                ctx.strokeStyle = '#f39c12';
-                ctx.lineWidth = 3;
-                ctx.stroke();
-            }
-        }
-
-        const errorConsole = document.getElementById('error-console');
-        const errorConsoleContent = document.getElementById('error-console-content');
-        const toggleConsoleBtn = document.getElementById('toggle-console-btn');
-        let isConsoleVisible = false;
-
-        function logError(message) {
-            console.log(`[${new Date().toISOString()}] ERROR: ${message}`);
-        }
-
-        toggleConsoleBtn.addEventListener('click', () => {
-            isConsoleVisible = !isConsoleVisible;
-            errorConsole.style.display = isConsoleVisible ? 'block' : 'none';
-            toggleConsoleBtn.textContent = isConsoleVisible ? 'Hide Console' : 'Show Console';
-        });
-
-        window.onerror = function(message, source, lineno, colno, error) {
-            console.error(`ERROR: ${message} (${source}:${lineno}:${colno})`);
-            return false;
-        };
-
-        window.addEventListener('unhandledrejection', function(event) {
-            console.error(`Unhandled Promise Rejection: ${event.reason}`);
-        });
-
-        let gameActive = false;
-        let paddle;
-        let fallingObject;
-
-        function initializeGame() {
-            paddle = {
-                x: canvas.width / 2,
-                width: 60,
-                height: 10,
-                speed: 5
-            };
-            
-            resetFallingObject();
-        }
-
-        function resetFallingObject() {
-            fallingObject = {
-                x: Math.random() * (canvas.width - 20),
-                y: 0,
-                width: 20,
-                height: 20,
-                speed: 2
-            };
-        }
-
-        function updateGame() {
-            if (!gameActive) return;
-
-            fallingObject.y += fallingObject.speed;
-
-            if (fallingObject.y + fallingObject.height >= canvas.height - paddle.height &&
-                fallingObject.x < paddle.x + paddle.width &&
-                fallingObject.x + fallingObject.width > paddle.x) {
-                resetFallingObject();
-                network.reward();
-            }
-
-            if (fallingObject.y > canvas.height) {
-                resetFallingObject();
-                network.punish();
-            }
-
-            const leftNeuronIndex = 0;
-            const rightNeuronIndex = 1;
-
-            if (network.neurons[leftNeuronIndex].activation > 0.5) {
-                paddle.x -= paddle.speed;
-            }
-            if (network.neurons[rightNeuronIndex].activation > 0.5) {
-                paddle.x += paddle.speed;
-            }
-
-            paddle.x = Math.max(0, Math.min(canvas.width - paddle.width, paddle.x));
-
-            const paddleCenterX = paddle.x + paddle.width / 2;
-            const objectCenterX = fallingObject.x + fallingObject.width / 2;
-            const distanceRatio = (objectCenterX - paddleCenterX) / (canvas.width / 2);
-
-            const inputNeuronIndices = [2, 3, 4];
-            inputNeuronIndices.forEach((index, i) => {
-                const stimulation = Math.exp(-Math.pow(distanceRatio - (-1 + i), 2) / 0.5);
-                network.neurons[index].stimulate(stimulation);
-            });
-        }
-
-        function drawGame() {
-            if (!gameActive) return;
-
-            ctx.fillStyle = '#3498db';
-            ctx.fillRect(paddle.x, canvas.height - paddle.height, paddle.width, paddle.height);
-
-            ctx.fillStyle = '#e74c3c';
-            ctx.fillRect(fallingObject.x, fallingObject.y, fallingObject.width, fallingObject.height);
-        }
-
-        function animate() {
-            try {
-                if (isSimulating) {
-                    network.update(0.05);
-                }
-                if (gameActive) {
-                    updateGame();
-                }
-                drawNetwork();
-                drawGame();
-            } catch (error) {
-                logError(`Error in animation loop: ${error.message}`);
-                console.error(error);
-            }
-            requestAnimationFrame(animate);
-        }
-
-        const gameButton = document.createElement('button');
-        gameButton.textContent = 'Start Game';
-        gameButton.classList.add('control-btn');
-        document.querySelector('.controls').appendChild(gameButton);
-
-        gameButton.addEventListener('click', () => {
-            gameActive = !gameActive;
-            if (gameActive) {
-                initializeGame();
-                gameButton.textContent = 'Stop Game';
-            } else {
-                gameButton.textContent = 'Start Game';
-            }
-        });
-
-        canvas.addEventListener('click', (event) => {
-            try {
-                const rect = canvas.getBoundingClientRect();
-                const x = event.clientX - rect.left;
-                const y = event.clientY - rect.top;
-                
-                let stimulated = false;
-                network.neurons.forEach((neuron, index) => {
-                    const dx = neuron.position.x - x;
-                    const dy = neuron.position.y - y;
-                    if (Math.sqrt(dx*dx + dy*dy) < 15) {
-                        network.stimulate_neuron(index);
-                        stimulated = true;
-                    }
-                });
-                
-                if (!stimulated) {
-                }
-            } catch (error) {
-                console.error(`Error in canvas click event: ${error.message}`);
-            }
-        });
-
-        document.getElementById('reset-btn').addEventListener('click', () => {
-            try {
-                network = new NeuralNetwork(neuron_count, glia_count);
-            } catch (error) {
-                logError(`Error resetting network: ${error.message}`);
-                console.error(error);
-            }
-        });
-
-        document.getElementById('toggle-sim-btn').addEventListener('click', (event) => {
-            try {
-                isSimulating = !isSimulating;
-                event.target.textContent = isSimulating ? 'Stop Simulation' : 'Start Simulation';
-            } catch (error) {
-                logError(`Error toggling simulation: ${error.message}`);
-                console.error(error);
-            }
-        });
-
-        document.getElementById('reward-btn').addEventListener('click', () => {
-            try {
-                network.reward();
-                canvas.style.boxShadow = '0 0 20px rgba(46, 204, 113, 0.5)';
-                setTimeout(() => {
-                    canvas.style.boxShadow = 'none';
-                }, 300);
-            } catch (error) {
-                logError(`Error rewarding network: ${error.message}`);
-                console.error(error);
-            }
-        });
-
-        document.getElementById('punish-btn').addEventListener('click', () => {
-            try {
-                network.punish();
-                canvas.style.boxShadow = '0 0 20px rgba(231, 76, 60, 0.5)';
-                setTimeout(() => {
-                    canvas.style.boxShadow = 'none';
-                }, 300);
-            } catch (error) {
-                logError(`Error punishing network: ${error.message}`);
-                console.error(error);
-            }
-        });
-
-        animate();
-    </script>
+const gameCanvas=document.getElementById('gameCanvas');
+const gameCtx=gameCanvas.getContext('2d');
+const netCanvas=document.getElementById('networkCanvas');
+const netCtx=netCanvas.getContext('2d');
+const gridSize=10;
+const n_input=gridSize*gridSize*2;
+const esn=new ESN({n_input:n_input, n_reservoir:100, n_output:4, spectral_radius:0.95, sparsity:0.1, input_scaling:0.1, bias_scaling:0.1, leaking_rate:0.3, use_feedback:true, res_lr:2e-6, res_decay:1e-7, bcm_theta:0.05, w_max:1.5, out_lr:1e-6, out_decay:1e-6, w_out_max:1.0, ip_lr:1e-6, target_mean:0.0, target_var:0.1, layer_norm:false, prune_threshold:0.001, new_conn_prob:0.05, activity_window:20, seed:42, bcm_adaptive:true, p_init:0.25, stdp_lr:1e-6});
+esn.reset_state();
+const env=new GridGameEnv2D({gridSize:gridSize, cellSize:50, numTraps:15, esn:esn});
+let obs=env.reset();
+let lastStepTime=performance.now();
+const stepInterval=100;
+function drawBoard(){
+  gameCtx.clearRect(0,0,gameCanvas.width,gameCanvas.height);
+  gameCtx.strokeStyle='rgba(255,255,255,0.3)';
+  gameCtx.lineWidth=1;
+  for(let i=0;i<=env.gridSize;i++){
+    let pos=i*env.cellSize;
+    gameCtx.beginPath();
+    gameCtx.moveTo(pos,0);
+    gameCtx.lineTo(pos,gameCanvas.height);
+    gameCtx.stroke();
+    gameCtx.beginPath();
+    gameCtx.moveTo(0,pos);
+    gameCtx.lineTo(gameCanvas.width,pos);
+    gameCtx.stroke();
+  }
+  for(let trap of env.traps){
+    let x=trap.x*env.cellSize+env.cellSize/2, y=trap.y*env.cellSize+env.cellSize/2;
+    gameCtx.beginPath();
+    gameCtx.arc(x,y,env.cellSize*0.3,0,2*Math.PI);
+    let grad=gameCtx.createRadialGradient(x,y,env.cellSize*0.1,x,y,env.cellSize*0.3);
+    grad.addColorStop(0,'#ff4b4b');
+    grad.addColorStop(1,'#ff0000');
+    gameCtx.fillStyle=grad;
+    gameCtx.fill();
+  }
+  let agentX=env.agentX*env.cellSize+env.cellSize/2, agentY=env.agentY*env.cellSize+env.cellSize/2;
+  gameCtx.beginPath();
+  gameCtx.arc(agentX,agentY,env.cellSize*0.3,0,2*Math.PI);
+  gameCtx.fillStyle='#4da6ff';
+  gameCtx.shadowColor='#4da6ff';
+  gameCtx.shadowBlur=15;
+  gameCtx.fill();
+  gameCtx.shadowBlur=0;
+}
+const gridDim=Math.sqrt(esn.n_reservoir);
+const margin=40;
+const availableWidth=netCanvas.width-2*margin;
+const availableHeight=netCanvas.height-2*margin;
+const neuronSpacingX=availableWidth/(gridDim-1);
+const neuronSpacingY=availableHeight/(gridDim-1);
+const neuronPositions=[];
+for(let i=0;i<esn.n_reservoir;i++){
+  let row=Math.floor(i/gridDim), col=i%gridDim;
+  let x=margin+col*neuronSpacingX, y=margin+row*neuronSpacingY;
+  neuronPositions.push({x,y});
+}
+function weightToColor(weight,w_max){
+  let normalized=(weight+w_max)/(2*w_max);
+  let hue=(1-normalized)*240;
+  return `hsl(${hue}, 100%, 50%)`;
+}
+function activationToVisual(activation){
+  let normalized=(activation+1)/2;
+  let hue=normalized*60+300;
+  let size=6+6*Math.abs(activation);
+  return {color:`hsl(${hue}, 80%, 60%)`, size};
+}
+function drawNetwork(){
+  netCtx.clearRect(0,0,netCanvas.width,netCanvas.height);
+  for(let i=0;i<esn.n_reservoir;i++){
+    let pos=neuronPositions[i];
+    let activation=esn.reservoir_state[i]||0;
+    let {color,size}=activationToVisual(activation);
+    netCtx.beginPath();
+    netCtx.arc(pos.x,pos.y,size,0,2*Math.PI);
+    netCtx.fillStyle=color;
+    netCtx.shadowColor=color;
+    netCtx.shadowBlur=10;
+    netCtx.fill();
+    netCtx.shadowBlur=0;
+  }
+}
+netCanvas.addEventListener('click',function(e){
+  let rect=netCanvas.getBoundingClientRect();
+  let x=e.clientX-rect.left, y=e.clientY-rect.top;
+  let hitRadius=15;
+  for(let i=0;i<neuronPositions.length;i++){
+    let pos=neuronPositions[i], dx=x-pos.x, dy=y-pos.y, dist=Math.sqrt(dx*dx+dy*dy);
+    if(dist<=hitRadius){ esn.reservoir_state[i]=1.0; break; }
+  }
+});
+function gameLoop(){
+  requestAnimationFrame(gameLoop);
+  let now=performance.now();
+  if(now-lastStepTime>stepInterval){
+    let output=esn.learn_step(obs);
+    let action=0; let maxVal=output[0];
+    for(let i=1;i<output.length;i++){
+      if(output[i]>maxVal){ maxVal=output[i]; action=i; }
+    }
+    let result=env.step(action);
+    obs=result.observation;
+    lastStepTime=now;
+  }
+  drawBoard();
+  drawNetwork();
+}
+gameLoop();
+anime({targets:'.header',translateY:[-20,0],opacity:[0,1],duration:1500,easing:'easeOutExpo'});
+</script>
 </body>
 </html>
