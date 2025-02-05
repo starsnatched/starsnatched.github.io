@@ -393,8 +393,8 @@ class GridGameEnv2D {
     let prevX=this.agentX, prevY=this.agentY;
     if(desired===0) this.agentY-=1; else if(desired===1) this.agentY+=1; else if(desired===2) this.agentX-=1; else if(desired===3) this.agentX+=1;
     this.steps++;
-    if(this.agentX===prevX && this.agentY===prevY){ this.esn.punish(0.2); }
-    for(let trap of this.traps){ if(trap.x===this.agentX && trap.y===this.agentY) this.esn.punish(0.3); }
+    if(this.agentX===prevX && this.agentY===prevY){ this.esn.punish(0.5); }
+    for(let trap of this.traps){ if(trap.x===this.agentX && trap.y===this.agentY) this.esn.punish(0.5); }
     return {observation:this._getObservation(), info:{}};
   }
 }
